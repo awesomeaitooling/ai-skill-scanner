@@ -1,0 +1,161 @@
+# ============================================================================
+# Skills Scanner — Configuration File
+# ============================================================================
+#
+# This file configures the security scanner for Claude Code plugins and skills.
+# Place this file in the project root or pass --config <path> to the CLI.
+#
+# Priority (highest to lowest):
+#   1. CLI arguments
+#   2. This config file
+#   3. Environment variables (SCANNER_MODE, SCANNER_AI_PROVIDER, etc.)
+#   4. Scan mode defaults
+#   5. Built-in defaults
+# ============================================================================
+
+# Scan mode: "strict", "balanced", or "permissive"
+#   strict     — All analyzers, aggressive rules, fail on high+critical
+#   balanced   — All analyzers, moderate rules (default)
+#   permissive — Fewer analyzers, only critical/high rules, fast
+scan_mode: balanced
+
+# ── Analyzers ──────────────────────────────────────────────────────
+# Toggle individual analyzers on/off.
+analyzers:
+  skill_analyzer: true           # SKILL.md / COMMAND.md / AGENT.md content analysis
+  script_analyzer: true          # Python/Bash/JS script security checks
+  hook_analyzer: true            # Hook configuration analysis
+  mcp_analyzer: true             # MCP server config analysis
+  lsp_analyzer: true             # LSP server config analysis
+  agent_command_analyzer: true   # Agent/command-specific checks (autonomy, arg injection)
+  ast_analyzer: true             # Python AST-based analysis (imports, calls, context)
+  dataflow_analyzer: true        # Source-to-sink taint tracking (Python only)
+  alignment_analyzer: true       # Description vs. actual behavior verification
+  cross_skill_analyzer: true     # Cross-component attack pattern detection
+  meta_analyzer: true            # False-positive filtering and severity adjustment
+
+# ── Component Types ────────────────────────────────────────────────
+# Which component types to include in the scan.
+components:
+  skills: true
+  commands: true
+  agents: true
+  hooks: true
+  mcp_servers: true
+  lsp_servers: true
+  scripts: true
+  resources: true
+
+# ── Rules ──────────────────────────────────────────────────────────
+# Fine-grained control over security rules.
+rules:
+  # List of rule IDs to disable (e.g., ["exfil-curl-post", "resource-while-true"])
+  disabled_rules: []
+
+  # List of categories to disable entirely
+  # Available: prompt-injection, command-injection, dangerous-command,
+  #   sensitive-data, path-traversal, sensitive-file, dangerous-directory,
+  #   access-control, template-injection, sql-injection, nosql-injection,
+  #   xxe, remote-code, obfuscation, data-exfiltration, resource-abuse,
+  #   unicode-steganography, social-engineering, autonomy-abuse, tool-poisoning,
+  #   supply-chain
+  disabled_categories: []
+
+  # Override severity for specific rules: {"rule-id": "new-severity"}
+  severity_overrides: {}
+  #   exfil-curl-post: medium       # Downgrade from high
+  #   unicode-rtl-override: high    # Downgrade from critical
+
+  # Path to directory with additional custom YAML rule files
+  # custom_rules_dir: ./my-rules/
+
+# ── File Handling ──────────────────────────────────────────────────
+files:
+  # Extensions recognized as analyzable scripts
+  script_extensions:
+    - .py
+    - .sh
+    - .bash
+    - .js
+    - .ts
+    - .rb
+    - .pl
+    - .zsh
+
+  # Extensions for text resources that will be read and scanned
+  resource_text_extensions:
+    - .yaml
+    - .yml
+    - .json
+    - .toml
+    - .cfg
+    - .ini
+    - .txt
+    - .template
+    - .tmpl
+    - .conf
+    - .properties
+    - .xml
+    - .csv
+    - .sql
+    - .graphql
+
+  # Extensions treated as binary (flagged, not read)
+  binary_extensions:
+    - .exe
+    - .dll
+    - .so
+    - .bin
+    - .wasm
+    - .jar
+    - .apk
+
+  # Maximum file size to read (in KB)
+  max_file_size_kb: 500
+
+  # Directories to exclude from scanning
+  exclude_paths:
+    - node_modules
+    - .git
+    - __pycache__
+    - .venv
+    - venv
+
+# ── AI Settings ────────────────────────────────────────────────────
+# AI-powered analysis (requires langchain + provider SDK).
+ai:
+  enabled: false
+  # Provider: openai, anthropic, bedrock, azure_openai, gemini
+  # provider: openai
+  # model: gpt-4
+  max_tokens: 8192
+  temperature: 0.0
+  prompt_injection_guard: true
+  max_content_per_component: 1500
+  max_total_content: 12000
+
+# ── Output ─────────────────────────────────────────────────────────
+output:
+  # Default output format: text, json, sarif, graph, csv
+  format: text
+  # output_file: scan-results.json
+  verbose: false
+  show_snippets: true
+  max_findings_display: 100
+  color: true
+
+# ── Thresholds (for CI/CD) ────────────────────────────────────────
+# Control exit codes based on finding counts.
+thresholds:
+  fail_on_critical: true     # Exit code 1 if any critical findings
+  fail_on_high: false        # Exit code 1 if any high findings
+  max_critical: 0            # Max allowed critical findings (0 = none)
+  max_high: -1               # -1 = no limit
+  max_medium: -1
+  max_low: -1
+
+# ── Logging ────────────────────────────────────────────────────────
+logging:
+  level: INFO                # DEBUG, INFO, WARNING, ERROR
+  # file: scanner.log        # Write logs to file
+  redact_secrets: true       # Redact secrets in log output
