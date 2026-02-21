@@ -1,0 +1,169 @@
+---
+metadata:
+  name: "Plugin Manifest Validation Rules"
+  description: "Validates plugin manifest structure and security-relevant fields"
+  version: "1.0.0"
+  author: "Security Team"
+  category: "manifest"
+
+rules:
+  # Manifest structure validation
+  - id: "manifest-missing-name"
+    name: "Missing Plugin Name"
+    description: "Plugin manifest is missing the 'name' field"
+    severity: "medium"
+    category: "manifest-structure"
+    pattern: "^(?!.*\"name\"\\s*:).*$"
+    pattern_flags: ["DOTALL"]
+    recommendation: "Add a 'name' field to the plugin manifest"
+    tags: ["manifest", "structure"]
+    enabled: false
+    false_positive_note: "Disabled: negative lookahead pattern matches every line; this check is handled by _analyze_manifest in main.py"
+
+  - id: "manifest-missing-version"
+    name: "Missing Version"
+    description: "Plugin manifest is missing the 'version' field"
+    severity: "medium"
+    category: "manifest-structure"
+    pattern: "^(?!.*\"version\"\\s*:).*$"
+    pattern_flags: ["DOTALL"]
+    recommendation: "Add a 'version' field to the plugin manifest"
+    tags: ["manifest", "structure"]
+    enabled: false
+    false_positive_note: "Disabled: negative lookahead pattern matches every line; this check is handled by _analyze_manifest in main.py"
+
+  # Permission validation
+  - id: "manifest-excessive-permissions"
+    name: "Excessive Permissions"
+    description: "Plugin requests all or wildcard permissions"
+    severity: "high"
+    category: "manifest-permissions"
+    pattern: "\"permissions\"\\s*:\\s*\\[\\s*\"\\*\"\\s*\\]|\"all\"\\s*:\\s*true"
+    pattern_flags: ["IGNORECASE"]
+    recommendation: "Request only necessary permissions; avoid wildcards"
+    tags: ["manifest", "permissions", "least-privilege"]
+
+  - id: "manifest-filesystem-permission"
+    name: "Filesystem Permission Requested"
+    description: "Plugin requests filesystem access"
+    severity: "medium"
+    category: "manifest-permissions"
+    pattern: "\"filesystem\"|\"file_system\"|\"fs\""
+    pattern_flags: ["IGNORECASE"]
+    recommendation: "Review if filesystem access is necessary"
+    tags: ["manifest", "permissions"]
+
+  - id: "manifest-network-permission"
+    name: "Network Permission Requested"
+    description: "Plugin requests network access"
+    severity: "medium"
+    category: "manifest-permissions"
+    pattern: "\"network\"|\"internet\"|\"http\""
+    pattern_flags: ["IGNORECASE"]
+    recommendation: "Review if network access is necessary"
+    tags: ["manifest", "permissions"]
+
+  - id: "manifest-shell-permission"
+    name: "Shell Execution Permission"
+    description: "Plugin requests shell execution permission"
+    severity: "high"
+    category: "manifest-permissions"
+    pattern: "\"shell\"|\"exec\"|\"command\""
+    pattern_flags: ["IGNORECASE"]
+    recommendation: "Carefully review shell execution requirements"
+    tags: ["manifest", "permissions", "dangerous"]
+
+  # MCP server configuration
+  - id: "manifest-mcp-unrestricted"
+    name: "Unrestricted MCP Server"
+    description: "MCP server configured without restrictions"
+    severity: "high"
+    category: "manifest-mcp"
+    pattern: "\"mcp\"[^}]*\"unrestricted\"\\s*:\\s*true"
+    pattern_flags: ["IGNORECASE", "DOTALL"]
+    recommendation: "Apply restrictions to MCP servers"
+    tags: ["manifest", "mcp", "permissions"]
+
+  - id: "manifest-mcp-external"
+    name: "External MCP Server URL"
+    description: "MCP server pointing to external URL"
+    severity: "high"
+    category: "manifest-mcp"
+    pattern: "\"mcp\"[^}]*\"url\"\\s*:\\s*\"https?://"
+    pattern_flags: ["IGNORECASE", "DOTALL"]
+    recommendation: "Review external MCP server connections"
+    tags: ["manifest", "mcp", "network"]
+
+  # Hook configuration risks
+  - id: "manifest-hook-global"
+    name: "Global Hook Registration"
+    description: "Hook registered for all events"
+    severity: "medium"
+    category: "manifest-hooks"
+    pattern: "\"hooks\"[^}]*\"\\*\""
+    pattern_flags: ["DOTALL"]
+    recommendation: "Register hooks only for specific events"
+    tags: ["manifest", "hooks"]
+
+  - id: "manifest-hook-preexec"
+    name: "Pre-execution Hook"
+    description: "Hook registered for pre-execution events"
+    severity: "medium"
+    category: "manifest-hooks"
+    pattern: "\"hooks\"[^}]*\"(pre|before)_(exec|execute|command)\""
+    pattern_flags: ["IGNORECASE", "DOTALL"]
+    recommendation: "Review pre-execution hook behavior"
+    tags: ["manifest", "hooks"]
+
+  - id: "manifest-hook-postexec"
+    name: "Post-execution Hook"
+    description: "Hook registered for post-execution events"
+    severity: "low"
+    category: "manifest-hooks"
+    pattern: "\"hooks\"[^}]*\"(post|after)_(exec|execute|command)\""
+    pattern_flags: ["IGNORECASE", "DOTALL"]
+    recommendation: "Review post-execution hook behavior"
+    tags: ["manifest", "hooks"]
+
+  # Agent configuration
+  - id: "manifest-agent-autonomous"
+    name: "Autonomous Agent Mode"
+    description: "Agent configured to run autonomously"
+    severity: "high"
+    category: "manifest-agents"
+    pattern: "\"agents?\"[^}]*\"autonomous\"\\s*:\\s*true"
+    pattern_flags: ["IGNORECASE", "DOTALL"]
+    recommendation: "Review autonomous agent behavior and limits"
+    tags: ["manifest", "agents", "autonomous"]
+
+  - id: "manifest-agent-unrestricted"
+    name: "Unrestricted Agent"
+    description: "Agent without scope restrictions"
+    severity: "high"
+    category: "manifest-agents"
+    pattern: "\"agents?\"[^}]*\"scope\"\\s*:\\s*\"(global|all)\""
+    pattern_flags: ["IGNORECASE", "DOTALL"]
+    recommendation: "Restrict agent scope to necessary operations"
+    tags: ["manifest", "agents"]
+
+  # External resource concerns
+  - id: "manifest-external-script"
+    name: "External Script Source"
+    description: "Script loaded from external URL"
+    severity: "high"
+    category: "manifest-resources"
+    pattern: "\"scripts?\"[^}]*\"(src|source|url)\"\\s*:\\s*\"https?://"
+    pattern_flags: ["IGNORECASE", "DOTALL"]
+    recommendation: "Load scripts from local sources; verify external scripts"
+    tags: ["manifest", "scripts", "supply-chain"]
+
+  - id: "manifest-external-resource"
+    name: "External Resource Reference"
+    description: "Resource loaded from external URL"
+    severity: "medium"
+    category: "manifest-resources"
+    pattern: "\"resources?\"[^}]*\"(src|source|url)\"\\s*:\\s*\"https?://"
+    pattern_flags: ["IGNORECASE", "DOTALL"]
+    recommendation: "Review external resource dependencies"
+    tags: ["manifest", "resources", "supply-chain"]
+

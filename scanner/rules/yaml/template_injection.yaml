@@ -1,0 +1,229 @@
+---
+metadata:
+  name: "Template and Data Injection Rules"
+  description: "Detects template injection, SQL injection, and other data injection patterns"
+  version: "1.0.0"
+  author: "Security Team"
+  category: "injection"
+
+rules:
+  # Template injection patterns
+  - id: "template-injection-mustache"
+    name: "Mustache/Handlebars Template"
+    description: "Detects Mustache/Handlebars template syntax that could be exploited"
+    severity: "high"
+    category: "template-injection"
+    pattern: "\\{\\{[^}]{1,500}\\}\\}"
+    pattern_flags: []
+    recommendation: "Escape template syntax; avoid user-controlled templates"
+    references:
+      - "https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/07-Input_Validation_Testing/18-Testing_for_Server-side_Template_Injection"
+    tags: ["template-injection", "ssti"]
+    components: ["skill", "agent", "command"]
+
+  - id: "template-injection-literal"
+    name: "Template Literal Injection"
+    description: "Detects JavaScript template literal syntax"
+    severity: "high"
+    category: "template-injection"
+    pattern: "\\$\\{[^}]{1,200}\\}"
+    pattern_flags: []
+    recommendation: "Sanitize template literal content"
+    tags: ["template-injection", "javascript"]
+    components: ["skill", "agent", "command"]
+
+  - id: "template-injection-erb"
+    name: "ERB/JSP Template Injection"
+    description: "Detects ERB or JSP template syntax"
+    severity: "high"
+    category: "template-injection"
+    pattern: "<%[^%]{1,500}%>"
+    pattern_flags: []
+    recommendation: "Use safe template rendering methods"
+    tags: ["template-injection", "erb", "jsp"]
+    components: ["skill", "agent", "command"]
+
+  - id: "template-injection-jinja"
+    name: "Jinja2/Django Template"
+    description: "Detects Jinja2 or Django template syntax"
+    severity: "high"
+    category: "template-injection"
+    pattern: "\\{%[^%]{1,500}%\\}"
+    pattern_flags: []
+    recommendation: "Use autoescape in Jinja2 templates"
+    tags: ["template-injection", "jinja", "python"]
+    components: ["skill", "agent", "command"]
+
+  - id: "template-injection-ruby"
+    name: "Ruby Interpolation"
+    description: "Detects Ruby string interpolation"
+    severity: "high"
+    category: "template-injection"
+    pattern: "#\\{[^}]{1,200}\\}"
+    pattern_flags: []
+    recommendation: "Sanitize interpolated content"
+    tags: ["template-injection", "ruby"]
+    components: ["skill", "agent", "command"]
+
+  # SQL injection patterns
+  - id: "sql-injection-or"
+    name: "SQL OR Injection"
+    description: "Detects SQL OR-based injection patterns"
+    severity: "critical"
+    category: "sql-injection"
+    pattern: "'\\s*or\\s*'"
+    pattern_flags: ["IGNORECASE"]
+    recommendation: "Use parameterized queries; never construct SQL from user input"
+    references:
+      - "https://owasp.org/www-community/attacks/SQL_Injection"
+    tags: ["sql-injection", "owasp-top10"]
+
+  - id: "sql-injection-drop"
+    name: "SQL DROP Injection"
+    description: "Detects SQL DROP statement injection"
+    severity: "critical"
+    category: "sql-injection"
+    pattern: "'\\s*;\\s*drop"
+    pattern_flags: ["IGNORECASE"]
+    recommendation: "Use parameterized queries; limit database permissions"
+    tags: ["sql-injection", "destructive"]
+
+  - id: "sql-injection-union"
+    name: "SQL UNION Injection"
+    description: "Detects SQL UNION-based injection"
+    severity: "critical"
+    category: "sql-injection"
+    pattern: "union\\s+select"
+    pattern_flags: ["IGNORECASE"]
+    recommendation: "Use parameterized queries"
+    tags: ["sql-injection"]
+
+  - id: "sql-injection-comment"
+    name: "SQL Comment Injection"
+    description: "Detects SQL comment injection patterns"
+    severity: "high"
+    category: "sql-injection"
+    pattern: ";\\s*--"
+    pattern_flags: []
+    recommendation: "Sanitize input; use parameterized queries"
+    tags: ["sql-injection"]
+
+  # NoSQL injection patterns
+  - id: "nosql-injection-where"
+    name: "MongoDB $where Injection"
+    description: "Detects MongoDB $where operator which can execute JavaScript"
+    severity: "critical"
+    category: "nosql-injection"
+    pattern: "\\$where"
+    pattern_flags: []
+    recommendation: "Avoid $where operator; use safer query methods"
+    references:
+      - "https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/07-Input_Validation_Testing/05.6-Testing_for_NoSQL_Injection"
+    tags: ["nosql-injection", "mongodb"]
+
+  - id: "nosql-injection-operator"
+    name: "MongoDB Operator Injection"
+    description: "Detects MongoDB query operators which are risky when user input controls them"
+    severity: "medium"
+    category: "nosql-injection"
+    pattern: "\\$gt|\\$lt|\\$ne|\\$eq"
+    pattern_flags: []
+    recommendation: "Validate and sanitize query operators"
+    tags: ["nosql-injection", "mongodb"]
+
+  - id: "nosql-injection-regex"
+    name: "MongoDB Regex Injection"
+    description: "Detects MongoDB $regex operator which can cause ReDoS"
+    severity: "high"
+    category: "nosql-injection"
+    pattern: "\\$regex"
+    pattern_flags: []
+    recommendation: "Validate regex patterns; implement timeouts"
+    tags: ["nosql-injection", "mongodb", "redos"]
+
+  - id: "nosql-injection-json-operator"
+    name: "JSON Operator Injection"
+    description: "Detects JSON-based query operator injection"
+    severity: "high"
+    category: "nosql-injection"
+    pattern: "\\{\\s*\\$"
+    pattern_flags: []
+    recommendation: "Sanitize JSON input before query construction"
+    tags: ["nosql-injection"]
+
+  # LDAP injection patterns
+  - id: "ldap-injection-wildcard"
+    name: "LDAP Wildcard Injection"
+    description: "Detects LDAP wildcard injection patterns"
+    severity: "high"
+    category: "ldap-injection"
+    pattern: "\\*\\)\\("
+    pattern_flags: []
+    recommendation: "Escape LDAP special characters; use parameterized queries"
+    references:
+      - "https://owasp.org/www-community/attacks/LDAP_Injection"
+    tags: ["ldap-injection"]
+
+  - id: "ldap-injection-filter"
+    name: "LDAP Filter Injection"
+    description: "Detects LDAP filter injection patterns"
+    severity: "high"
+    category: "ldap-injection"
+    pattern: "\\)\\(|\\)\\|"
+    pattern_flags: []
+    recommendation: "Sanitize LDAP query input"
+    tags: ["ldap-injection"]
+
+  # XML/XXE injection patterns
+  - id: "xxe-entity-definition"
+    name: "XML Entity Definition"
+    description: "Detects XML entity definitions which can lead to XXE"
+    severity: "critical"
+    category: "xxe"
+    pattern: "<!ENTITY"
+    pattern_flags: []
+    recommendation: "Disable external entities; use safe XML parsers"
+    references:
+      - "https://owasp.org/www-community/vulnerabilities/XML_External_Entity_(XXE)_Processing"
+    tags: ["xxe", "xml", "owasp-top10"]
+
+  - id: "xxe-external-dtd"
+    name: "External DTD Reference"
+    description: "Detects external DTD references"
+    severity: "critical"
+    category: "xxe"
+    pattern: "<!DOCTYPE[^>]*SYSTEM"
+    pattern_flags: ["IGNORECASE"]
+    recommendation: "Disable external DTD loading"
+    tags: ["xxe", "xml"]
+
+  - id: "xxe-file-protocol"
+    name: "File Protocol in XML"
+    description: "Detects file:// protocol which can read local files"
+    severity: "critical"
+    category: "xxe"
+    pattern: "file://"
+    pattern_flags: []
+    recommendation: "Block file:// protocol in XML parsing"
+    tags: ["xxe", "file-read"]
+
+  - id: "xxe-expect-protocol"
+    name: "Expect Protocol (XXE)"
+    description: "Detects expect:// protocol for command execution"
+    severity: "critical"
+    category: "xxe"
+    pattern: "expect://"
+    pattern_flags: []
+    recommendation: "Block dangerous protocols in XML parsing"
+    tags: ["xxe", "rce"]
+
+  - id: "xxe-php-protocol"
+    name: "PHP Protocol (XXE)"
+    description: "Detects php:// protocol in XML"
+    severity: "critical"
+    category: "xxe"
+    pattern: "php://"
+    pattern_flags: []
+    recommendation: "Block PHP wrapper protocols"
+    tags: ["xxe", "php"]
+

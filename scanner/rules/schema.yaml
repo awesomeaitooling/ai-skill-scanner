@@ -1,0 +1,59 @@
+# Rule Schema Documentation
+# This file documents the YAML schema for security rules
+
+# Each rule file should contain:
+# - metadata: Information about the rule set
+# - rules: List of individual rules
+
+# Example structure:
+# ---
+# metadata:
+#   name: "Rule Set Name"
+#   description: "Description of what these rules detect"
+#   version: "1.0.0"
+#   author: "Security Team"
+#
+# rules:
+#   - id: "rule-id"                    # Required: Unique identifier (kebab-case)
+#     name: "Rule Name"                 # Required: Human-readable name
+#     description: "What this detects"  # Required: Detailed description
+#     severity: "critical"              # Required: critical|high|medium|low
+#     category: "injection"             # Required: Category for grouping
+#     pattern: "regex pattern"          # Required: Regex pattern to match
+#     pattern_flags: ["IGNORECASE"]     # Optional: Regex flags
+#     recommendation: "How to fix"      # Required: Remediation guidance
+#     references:                       # Optional: External references
+#       - "https://owasp.org/..."
+#     tags:                             # Optional: Tags for filtering
+#       - "owasp-top10"
+#       - "injection"
+#     enabled: true                     # Optional: Default true
+#     false_positive_note: "..."        # Optional: Notes about false positives
+#     file_types:                       # Optional: Restrict rule to file types
+#       - "python"
+#       - "bash"
+#       - "javascript"
+#     components:                       # Optional: Restrict rule to component types
+#       - "skill"
+#       - "script"
+#       - "hook"
+#       - "mcp"
+#       - "lsp"
+#       - "agent"
+#       - "command"
+#       - "resource"
+#     exclude_patterns:                 # Optional: Regexes that exclude false positives
+#       - "# nosec"
+#       - "noqa: security"
+
+# Supported pattern_flags:
+# - IGNORECASE (re.IGNORECASE)
+# - MULTILINE (re.MULTILINE)
+# - DOTALL (re.DOTALL)
+
+# Severity levels:
+# - critical: Direct code execution, credential exposure, data exfiltration
+# - high: Significant security risk, potential exploitation path
+# - medium: Security weakness, defense-in-depth concern
+# - low: Minor issue, best practice violation
+

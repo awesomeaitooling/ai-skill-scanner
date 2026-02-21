@@ -1,0 +1,336 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ===================================================================
+   THEME TOKENS — CSS custom properties
+   Default = dark. Add class="light" on <html> for light mode.
+   =================================================================== */
+
+:root,
+.dark {
+  --bg: 15 23 42;                /* #0f172a */
+  --bg-elevated: 30 41 59;      /* #1e293b */
+  --bg-card: 30 41 59;          /* #1e293b */
+  --surface: 51 65 85;          /* #334155 */
+  --surface-hover: 71 85 105;   /* #475569 */
+
+  --fg: 241 245 249;            /* #f1f5f9 */
+  --fg-secondary: 148 163 184;  /* #94a3b8 */
+  --fg-muted: 100 116 139;      /* #64748b */
+
+  --border-color: 51 65 85;     /* #334155 */
+  --border-strong: 71 85 105;   /* #475569 */
+
+  --accent: 34 211 238;         /* #22d3ee */
+  --accent-glow: 6 182 212;     /* #06b6d4 */
+
+  /* Node cards */
+  --node-bg: 30 41 59;
+  --node-border: 51 65 85;
+  --node-footer: 15 23 42;
+
+  /* React Flow overrides */
+  --rf-bg: #0f172a;
+  --rf-minimap-bg: #1e293b;
+  --rf-minimap-mask: rgba(15, 23, 42, 0.85);
+  --rf-dot-color: rgba(100, 116, 139, 0.15);
+  --rf-ctrl-bg: rgba(30, 41, 59, 0.8);
+  --rf-ctrl-border: rgba(148, 163, 184, 0.15);
+  --rf-ctrl-btn-border: rgba(148, 163, 184, 0.1);
+  --rf-ctrl-btn-hover: rgba(34, 211, 238, 0.15);
+  --rf-ctrl-color: #94a3b8;
+
+  /* Scrollbar */
+  --scrollbar-track: rgba(30, 41, 59, 0.5);
+  --scrollbar-thumb: rgba(148, 163, 184, 0.3);
+  --scrollbar-thumb-hover: rgba(148, 163, 184, 0.5);
+
+  /* Glass */
+  --glass-bg: rgba(30, 41, 59, 0.7);
+  --glass-border: rgba(148, 163, 184, 0.1);
+  --glass-dark-bg: rgba(15, 23, 42, 0.8);
+
+  /* Grid pattern */
+  --grid-line: rgba(34, 211, 238, 0.03);
+
+  /* Code blocks */
+  --code-bg: rgba(0, 0, 0, 0.3);
+}
+
+.light {
+  --bg: 248 250 252;            /* #f8fafc */
+  --bg-elevated: 255 255 255;   /* #ffffff */
+  --bg-card: 255 255 255;       /* #ffffff */
+  --surface: 241 245 249;       /* #f1f5f9 */
+  --surface-hover: 226 232 240; /* #e2e8f0 */
+
+  --fg: 15 23 42;               /* #0f172a */
+  --fg-secondary: 71 85 105;    /* #475569 */
+  --fg-muted: 148 163 184;      /* #94a3b8 */
+
+  --border-color: 226 232 240;  /* #e2e8f0 */
+  --border-strong: 203 213 225; /* #cbd5e1 */
+
+  --accent: 8 145 178;          /* #0891b2 */
+  --accent-glow: 6 182 212;     /* #06b6d4 */
+
+  /* Node cards */
+  --node-bg: 255 255 255;
+  --node-border: 226 232 240;
+  --node-footer: 248 250 252;
+
+  /* React Flow overrides */
+  --rf-bg: #f8fafc;
+  --rf-minimap-bg: #ffffff;
+  --rf-minimap-mask: rgba(248, 250, 252, 0.85);
+  --rf-dot-color: rgba(148, 163, 184, 0.25);
+  --rf-ctrl-bg: rgba(255, 255, 255, 0.9);
+  --rf-ctrl-border: rgba(0, 0, 0, 0.08);
+  --rf-ctrl-btn-border: rgba(0, 0, 0, 0.06);
+  --rf-ctrl-btn-hover: rgba(8, 145, 178, 0.1);
+  --rf-ctrl-color: #475569;
+
+  /* Scrollbar */
+  --scrollbar-track: rgba(241, 245, 249, 0.8);
+  --scrollbar-thumb: rgba(148, 163, 184, 0.4);
+  --scrollbar-thumb-hover: rgba(148, 163, 184, 0.6);
+
+  /* Glass */
+  --glass-bg: rgba(255, 255, 255, 0.8);
+  --glass-border: rgba(0, 0, 0, 0.06);
+  --glass-dark-bg: rgba(248, 250, 252, 0.9);
+
+  /* Grid pattern */
+  --grid-line: rgba(148, 163, 184, 0.08);
+
+  /* Code blocks */
+  --code-bg: rgba(241, 245, 249, 0.8);
+}
+
+/* ===================================================================
+   BASE STYLES
+   =================================================================== */
+
+* {
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background-color: rgb(var(--bg));
+  color: rgb(var(--fg));
+  overflow: hidden;
+}
+
+/* Background pattern */
+.bg-grid-pattern {
+  background-image:
+    linear-gradient(var(--grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+/* Glass morphism */
+.glass {
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-border);
+}
+
+.glass-darker {
+  background: var(--glass-dark-bg);
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--glass-border);
+}
+
+/* ===================================================================
+   SCROLLBAR
+   =================================================================== */
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+}
+
+/* ===================================================================
+   REACT FLOW OVERRIDES
+   =================================================================== */
+
+.react-flow__background {
+  background-color: var(--rf-bg) !important;
+}
+
+.react-flow__minimap {
+  background: var(--rf-minimap-bg) !important;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--glass-border);
+}
+
+.react-flow__minimap-mask {
+  fill: var(--rf-minimap-mask);
+}
+
+.react-flow__controls {
+  background: var(--rf-ctrl-bg) !important;
+  border-radius: 10px;
+  border: 1px solid var(--rf-ctrl-border) !important;
+  box-shadow: 0 8px 16px -4px rgba(0, 0, 0, 0.15) !important;
+  overflow: hidden;
+}
+
+.react-flow__controls-button {
+  background: transparent !important;
+  border: none !important;
+  border-bottom: 1px solid var(--rf-ctrl-btn-border) !important;
+  color: var(--rf-ctrl-color) !important;
+  width: 32px !important;
+  height: 32px !important;
+}
+
+.react-flow__controls-button:last-child {
+  border-bottom: none !important;
+}
+
+.react-flow__controls-button:hover {
+  background: var(--rf-ctrl-btn-hover) !important;
+  color: rgb(var(--accent)) !important;
+}
+
+.react-flow__controls-button svg {
+  fill: currentColor !important;
+  width: 14px !important;
+  height: 14px !important;
+}
+
+/* Hide handles by default, show on hover */
+.react-flow__node:not(:hover) .react-flow__handle {
+  opacity: 0;
+}
+
+.react-flow__node:hover .react-flow__handle {
+  opacity: 1;
+}
+
+/* Smooth node transitions */
+.react-flow__node {
+  transition: transform 0.15s ease-out;
+}
+
+/* Selected node styling */
+.react-flow__node.selected {
+  z-index: 10;
+}
+
+/* Edge styling */
+.react-flow__edge-path {
+  transition: stroke 0.2s ease, stroke-width 0.2s ease;
+}
+
+.react-flow__edge:hover .react-flow__edge-path {
+  stroke-width: 3px !important;
+}
+
+/* ===================================================================
+   ANIMATIONS
+   =================================================================== */
+
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 5px currentColor, 0 0 10px currentColor;
+  }
+  50% {
+    box-shadow: 0 0 15px currentColor, 0 0 25px currentColor;
+  }
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+/* ===================================================================
+   SEVERITY INDICATORS
+   =================================================================== */
+
+.severity-critical { --glow-color: #ef4444; }
+.severity-high     { --glow-color: #f97316; }
+.severity-medium   { --glow-color: #eab308; }
+.severity-low      { --glow-color: #6b7280; }
+.severity-clean    { --glow-color: #22c55e; }
+
+/* ===================================================================
+   CODE BLOCKS
+   =================================================================== */
+
+.code-block {
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 0.8rem;
+  background: var(--code-bg);
+  border-radius: 6px;
+  padding: 0.75rem;
+  overflow-x: auto;
+}
+
+/* ===================================================================
+   BADGES
+   =================================================================== */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.125rem 0.5rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.badge-critical {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.badge-high {
+  background: rgba(249, 115, 22, 0.15);
+  color: #f97316;
+  border: 1px solid rgba(249, 115, 22, 0.3);
+}
+
+.badge-medium {
+  background: rgba(234, 179, 8, 0.15);
+  color: #ca8a04;
+  border: 1px solid rgba(234, 179, 8, 0.3);
+}
+
+.badge-low {
+  background: rgba(107, 114, 128, 0.15);
+  color: #6b7280;
+  border: 1px solid rgba(107, 114, 128, 0.3);
+}
+
+.badge-clean {
+  background: rgba(34, 197, 94, 0.15);
+  color: #22c55e;
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}

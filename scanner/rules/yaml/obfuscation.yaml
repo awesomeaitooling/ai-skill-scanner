@@ -1,0 +1,117 @@
+metadata:
+  name: Obfuscation Rules
+  description: Detects code obfuscation techniques — XOR encoding, dynamic attribute access, char code manipulation
+  version: "1.0.0"
+  author: Skills Scanner
+  category: obfuscation
+
+rules:
+  - id: obfuscation-xor-operation
+    name: XOR Encoding Operation
+    description: XOR operation detected (commonly used to obfuscate payloads)
+    severity: high
+    category: obfuscation
+    pattern: '(?:xor|XOR|\^=|\^ )\s*(?:0x|\d|key|byte)'
+    recommendation: XOR encoding is a common obfuscation technique; review for hidden payloads
+    tags: [python, obfuscation]
+
+  - id: obfuscation-getattr-import
+    name: Dynamic getattr(__import__) Execution
+    description: "getattr(__import__(...)) pattern detected — obfuscated code execution"
+    severity: critical
+    category: obfuscation
+    pattern: 'getattr\s*\(\s*__import__\s*\('
+    recommendation: This pattern hides dangerous function calls; review and remove
+    tags: [python, obfuscation, execution]
+
+  - id: obfuscation-dynamic-getattr
+    name: Dynamic Attribute Access
+    description: Dynamic getattr() with string argument (potential obfuscation)
+    severity: medium
+    category: obfuscation
+    pattern: 'getattr\s*\(\s*\w+\s*,\s*[''"](?:system|exec|eval|popen|spawn)'
+    recommendation: Avoid dynamic attribute access for sensitive functions
+    tags: [python, obfuscation]
+
+  - id: obfuscation-chr-chain
+    name: Character Code Chain
+    description: Chain of chr() calls (obfuscated string construction)
+    severity: high
+    category: obfuscation
+    pattern: 'chr\s*\(\s*\d+\s*\)\s*\+\s*chr\s*\(\s*\d+\s*\)'
+    recommendation: Character code chains are used to hide malicious strings; review the decoded value
+    tags: [python, obfuscation]
+
+  - id: obfuscation-fromcharcode
+    name: String.fromCharCode Chain
+    description: String.fromCharCode() usage (common JS API but also used for obfuscation)
+    severity: medium
+    category: obfuscation
+    pattern: 'String\.fromCharCode\s*\('
+    recommendation: fromCharCode chains are used to hide malicious strings; review the decoded value
+    tags: [javascript, obfuscation]
+
+  - id: obfuscation-codecs-decode
+    name: codecs.decode Obfuscation
+    description: codecs.decode() usage (common for encoding but can hide payloads)
+    severity: low
+    category: obfuscation
+    pattern: 'codecs\.decode\s*\('
+    recommendation: Review what is being decoded — this can hide malicious payloads
+    tags: [python, obfuscation]
+
+  - id: obfuscation-rot13
+    name: ROT13 Encoding
+    description: ROT13 encoding detected (simple obfuscation)
+    severity: medium
+    category: obfuscation
+    pattern: "(?:rot13|rot_13|codecs\\.decode\\s*\\([^)]*['\"]rot.?13['\"])"
+    pattern_flags: [IGNORECASE]
+    recommendation: ROT13 is used to hide strings from casual inspection; review the hidden content
+    tags: [python, obfuscation]
+
+  - id: obfuscation-hex-bytes
+    name: Hex-Encoded Byte String
+    description: Long hex-encoded byte string detected (potential obfuscated payload)
+    severity: medium
+    category: obfuscation
+    pattern: '(?:\\x[0-9a-f]{2}){10,}'
+    pattern_flags: [IGNORECASE]
+    recommendation: Long hex-encoded strings may contain obfuscated payloads; decode and review
+    tags: [python, obfuscation]
+
+  - id: obfuscation-bytes-decode
+    name: bytes.fromhex Decoding
+    description: bytes.fromhex() usage (common for hex decoding but can hide payloads)
+    severity: low
+    category: obfuscation
+    pattern: 'bytes\.fromhex\s*\('
+    recommendation: Review what is being decoded from hex
+    tags: [python, obfuscation]
+
+  - id: obfuscation-compile-exec
+    name: compile() + exec() Chain
+    description: compile() followed by exec() (dynamic code execution)
+    severity: critical
+    category: obfuscation
+    pattern: 'exec\s*\(\s*compile\s*\('
+    recommendation: Dynamic code compilation and execution is extremely dangerous; remove
+    tags: [python, obfuscation, execution]
+
+  - id: obfuscation-lambda-chain
+    name: Nested Lambda Obfuscation
+    description: Nested lambda expressions (potential obfuscation)
+    severity: medium
+    category: obfuscation
+    pattern: 'lambda\s+\w+\s*:\s*lambda\s+\w+\s*:'
+    recommendation: Deeply nested lambdas can hide malicious logic; simplify and review
+    tags: [python, obfuscation]
+
+  - id: obfuscation-reversed-string
+    name: Reversed String Execution
+    description: "String reversal before execution (obfuscation pattern)"
+    severity: high
+    category: obfuscation
+    pattern: "(?:exec|eval)\\s*\\(.*(?:reversed|\\[::-1\\])"
+    recommendation: Reversing strings before execution is a common obfuscation technique
+    tags: [python, obfuscation, execution]

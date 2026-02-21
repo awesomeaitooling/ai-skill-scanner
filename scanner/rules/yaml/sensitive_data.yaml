@@ -1,0 +1,161 @@
+---
+metadata:
+  name: "Sensitive Data Rules"
+  description: "Detects hardcoded credentials and sensitive data exposure"
+  version: "1.0.0"
+  author: "Security Team"
+  category: "sensitive-data"
+
+rules:
+  - id: "secret-api-key"
+    name: "Hardcoded API Key"
+    description: "Detects hardcoded API keys in code"
+    severity: "high"
+    category: "sensitive-data"
+    pattern: "(api[_-]?key|apikey)\\s*[:=]\\s*['\"][^'\"]{8,}['\"]"
+    pattern_flags: ["IGNORECASE"]
+    recommendation: "Remove hardcoded credentials; use environment variables or secrets management"
+    references:
+      - "https://owasp.org/www-community/vulnerabilities/Use_of_hard-coded_password"
+    tags: ["secrets", "api-key", "owasp-top10"]
+
+  - id: "secret-password"
+    name: "Hardcoded Password"
+    description: "Detects hardcoded passwords"
+    severity: "high"
+    category: "sensitive-data"
+    pattern: "(password|passwd|pwd)\\s*[:=]\\s*['\"][^'\"]{8,}['\"]"
+    pattern_flags: ["IGNORECASE"]
+    recommendation: "Never hardcode passwords; use secrets management"
+    tags: ["secrets", "password"]
+
+  - id: "secret-token"
+    name: "Hardcoded Secret/Token"
+    description: "Detects hardcoded secrets or tokens"
+    severity: "high"
+    category: "sensitive-data"
+    pattern: "(secret|token)\\s*[:=]\\s*['\"][^'\"]{8,}['\"]"
+    pattern_flags: ["IGNORECASE"]
+    recommendation: "Use environment variables for secrets"
+    tags: ["secrets", "token"]
+
+  - id: "secret-aws-key-reference"
+    name: "AWS Access Key Reference"
+    description: "Detects references to AWS access keys (informational — may be env var usage)"
+    severity: "medium"
+    category: "sensitive-data"
+    pattern: "aws[_-]?access[_-]?key"
+    pattern_flags: ["IGNORECASE"]
+    recommendation: "Use IAM roles instead of access keys when possible"
+    tags: ["secrets", "aws"]
+
+  - id: "secret-private-key-reference"
+    name: "Private Key Reference"
+    description: "Detects references to private keys (informational — may be env var usage)"
+    severity: "medium"
+    category: "sensitive-data"
+    pattern: "private[_-]?key"
+    pattern_flags: ["IGNORECASE"]
+    recommendation: "Never expose private keys in code"
+    tags: ["secrets", "crypto"]
+
+  - id: "secret-aws-key-pattern"
+    name: "AWS Access Key ID Pattern"
+    description: "Detects AWS Access Key ID patterns (AKIA...)"
+    severity: "critical"
+    category: "sensitive-data"
+    pattern: "AKIA[0-9A-Z]{16}"
+    pattern_flags: []
+    recommendation: "Rotate exposed AWS keys immediately"
+    tags: ["secrets", "aws", "credential"]
+
+  - id: "secret-bearer-token"
+    name: "Bearer Token"
+    description: "Detects bearer tokens in code"
+    severity: "high"
+    category: "sensitive-data"
+    pattern: "bearer\\s+[a-zA-Z0-9\\-_.]{20,}"
+    pattern_flags: ["IGNORECASE"]
+    recommendation: "Remove bearer tokens from code"
+    tags: ["secrets", "token", "auth"]
+
+  - id: "secret-client-secret"
+    name: "OAuth Client Secret"
+    description: "Detects OAuth client secret references (informational — may be env var usage)"
+    severity: "medium"
+    category: "sensitive-data"
+    pattern: "client[_-]?secret"
+    pattern_flags: ["IGNORECASE"]
+    recommendation: "Store OAuth secrets securely"
+    tags: ["secrets", "oauth"]
+
+  - id: "secret-private-key-content"
+    name: "Private Key Content"
+    description: "Detects actual private key content"
+    severity: "critical"
+    category: "sensitive-data"
+    pattern: "-----BEGIN\\s+(RSA\\s+)?PRIVATE\\s+KEY-----"
+    pattern_flags: []
+    recommendation: "Never commit private keys to code; rotate immediately if exposed"
+    tags: ["secrets", "crypto", "key"]
+
+  - id: "secret-database-url"
+    name: "Database Connection String"
+    description: "Detects database connection strings"
+    severity: "high"
+    category: "sensitive-data"
+    pattern: "database[_-]?url\\s*[:=]"
+    pattern_flags: ["IGNORECASE"]
+    recommendation: "Use environment variables for database connections"
+    tags: ["secrets", "database"]
+
+  - id: "secret-github-token"
+    name: "GitHub Token Pattern"
+    description: "Detects GitHub personal access tokens"
+    severity: "critical"
+    category: "sensitive-data"
+    pattern: "ghp_[a-zA-Z0-9]{36}"
+    pattern_flags: []
+    recommendation: "Rotate exposed GitHub tokens immediately"
+    tags: ["secrets", "github", "token"]
+
+  - id: "secret-slack-token"
+    name: "Slack Token Pattern"
+    description: "Detects Slack tokens"
+    severity: "high"
+    category: "sensitive-data"
+    pattern: "xox[baprs]-[a-zA-Z0-9\\-]{10,}"
+    pattern_flags: []
+    recommendation: "Rotate exposed Slack tokens"
+    tags: ["secrets", "slack", "token"]
+
+  - id: "secret-stripe-key"
+    name: "Stripe API Key"
+    description: "Detects Stripe API keys"
+    severity: "critical"
+    category: "sensitive-data"
+    pattern: "sk_live_[a-zA-Z0-9]{24,}"
+    pattern_flags: []
+    recommendation: "Never expose Stripe live keys"
+    tags: ["secrets", "stripe", "payment"]
+
+  - id: "secret-jwt"
+    name: "JWT Token"
+    description: "Detects JWT tokens"
+    severity: "medium"
+    category: "sensitive-data"
+    pattern: "eyJ[a-zA-Z0-9_-]*\\.eyJ[a-zA-Z0-9_-]*\\.[a-zA-Z0-9_-]*"
+    pattern_flags: []
+    recommendation: "Review JWT exposure and token lifetime"
+    tags: ["secrets", "jwt", "token"]
+
+  - id: "secret-generic-secret"
+    name: "Generic Secret Pattern"
+    description: "Detects generic secret assignments"
+    severity: "medium"
+    category: "sensitive-data"
+    pattern: "(secret|credential|auth)\\s*[:=]\\s*['\"][^'\"]{8,64}['\"]"
+    pattern_flags: ["IGNORECASE"]
+    recommendation: "Review and externalize secrets"
+    tags: ["secrets"]
+

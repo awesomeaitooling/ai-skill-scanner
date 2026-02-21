@@ -1,0 +1,147 @@
+metadata:
+  name: Data Exfiltration Rules
+  description: Detects data exfiltration patterns — network transmission, socket connections, DNS exfil
+  version: "1.0.0"
+  author: Skills Scanner
+  category: data-exfiltration
+
+rules:
+  - id: exfil-requests-post
+    name: HTTP POST Request
+    description: HTTP POST request detected (potential data exfiltration)
+    severity: medium
+    category: data-exfiltration
+    pattern: 'requests\.(post|put|patch)\s*\('
+    pattern_flags: [IGNORECASE]
+    recommendation: Review the destination and data being sent; ensure it is intentional and necessary
+    tags: [python, network, exfiltration]
+
+  - id: exfil-urllib-request
+    name: urllib Request
+    description: urllib request detected (potential data transmission)
+    severity: medium
+    category: data-exfiltration
+    pattern: 'urllib\.(request\.urlopen|request\.Request|parse\.urlencode)'
+    pattern_flags: [IGNORECASE]
+    recommendation: Review the destination URL and data payload
+    tags: [python, network, exfiltration]
+
+  - id: exfil-httpx-post
+    name: httpx POST Request
+    description: httpx POST/PUT request detected
+    severity: high
+    category: data-exfiltration
+    pattern: 'httpx\.\w*\.(post|put|patch)\s*\('
+    pattern_flags: [IGNORECASE]
+    recommendation: Review the destination and data being sent
+    tags: [python, network, exfiltration]
+
+  - id: exfil-aiohttp-post
+    name: aiohttp POST Request
+    description: aiohttp or requests session POST request detected
+    severity: medium
+    category: data-exfiltration
+    pattern: 'session\.(post|put|patch)\s*\('
+    pattern_flags: [IGNORECASE]
+    recommendation: Review the destination and data being sent
+    tags: [python, network, exfiltration]
+
+  - id: exfil-socket-connect
+    name: Socket Connection
+    description: Direct socket connection detected (potential data exfiltration)
+    severity: high
+    category: data-exfiltration
+    pattern: 'socket\.socket\s*\(|\.connect\s*\(\s*\('
+    pattern_flags: [IGNORECASE]
+    recommendation: Direct socket connections bypass HTTP security controls; review necessity
+    tags: [python, network, exfiltration]
+
+  - id: exfil-socket-send
+    name: Socket Send
+    description: Socket send operation detected
+    severity: high
+    category: data-exfiltration
+    pattern: '(?:sock(?:et)?|conn(?:ection)?)\.(send|sendall|sendto|sendmsg)\s*\('
+    pattern_flags: [IGNORECASE]
+    recommendation: Verify the destination and data being transmitted
+    tags: [python, network, exfiltration]
+
+  - id: exfil-fetch-post
+    name: JavaScript fetch POST
+    description: JavaScript fetch POST request detected
+    severity: high
+    category: data-exfiltration
+    pattern: "fetch\\s*\\([^)]*method\\s*:\\s*['\"]POST['\"]"
+    pattern_flags: [IGNORECASE, DOTALL]
+    recommendation: Review the destination URL and request body
+    tags: [javascript, network, exfiltration]
+
+  - id: exfil-xmlhttprequest
+    name: XMLHttpRequest
+    description: XMLHttpRequest detected (potential data transmission)
+    severity: medium
+    category: data-exfiltration
+    pattern: 'XMLHttpRequest|\.open\s*\(\s*[''"]POST[''"]'
+    pattern_flags: [IGNORECASE]
+    recommendation: Review the endpoint and data being sent
+    tags: [javascript, network, exfiltration]
+
+  - id: exfil-websocket
+    name: WebSocket Connection
+    description: WebSocket connection detected (potential data channel)
+    severity: medium
+    category: data-exfiltration
+    pattern: 'WebSocket\s*\(|websockets?\.(connect|serve)'
+    pattern_flags: [IGNORECASE]
+    recommendation: WebSocket connections can be used for continuous data exfiltration; review necessity
+    tags: [javascript, python, network, exfiltration]
+
+  - id: exfil-curl-post
+    name: curl POST Command
+    description: curl POST command detected in script
+    severity: high
+    category: data-exfiltration
+    pattern: 'curl\s+.*(-X\s*POST|-d\s|--data\s|--data-raw\s)'
+    pattern_flags: [IGNORECASE]
+    recommendation: Review the curl command destination and data being sent
+    tags: [bash, network, exfiltration]
+
+  - id: exfil-wget-post
+    name: wget POST Command
+    description: wget POST command detected
+    severity: high
+    category: data-exfiltration
+    pattern: 'wget\s+.*--post-(data|file)'
+    pattern_flags: [IGNORECASE]
+    recommendation: Review the wget command destination and data being sent
+    tags: [bash, network, exfiltration]
+
+  - id: exfil-nc-send
+    name: Netcat Data Send
+    description: Netcat (nc) used to send data
+    severity: critical
+    category: data-exfiltration
+    pattern: '(?:nc|ncat|netcat)\s+(?:-[a-z]*\s+)*\S+\s+\d+'
+    pattern_flags: [IGNORECASE]
+    recommendation: Netcat is commonly used for data exfiltration; remove or justify its use
+    tags: [bash, network, exfiltration]
+
+  - id: exfil-dns-lookup
+    name: DNS Exfiltration Pattern
+    description: DNS query with dynamic data (potential DNS exfiltration)
+    severity: medium
+    category: data-exfiltration
+    pattern: '(?:nslookup|dig|host)\s+.*\$|dns\.resolver\.query'
+    pattern_flags: [IGNORECASE]
+    recommendation: DNS queries with dynamic data can be used for covert exfiltration; review
+    tags: [bash, python, exfiltration]
+
+  - id: exfil-sensitive-file-read
+    name: Sensitive File Read with Network
+    description: Reading sensitive files alongside network imports
+    severity: critical
+    category: data-exfiltration
+    pattern: '(?:\.aws/credentials|\.ssh/|\.env\b|\.git/config|/etc/passwd)'
+    pattern_flags: [IGNORECASE]
+    recommendation: Accessing sensitive files is a prerequisite for credential exfiltration; verify intent
+    tags: [python, bash, exfiltration, credentials]

@@ -1,0 +1,89 @@
+metadata:
+  name: Tool Poisoning Rules
+  description: Detects tool poisoning — shadowing built-in tools, misleading descriptions, excessive permissions
+  version: "1.0.0"
+  author: Skills Scanner
+  category: tool-poisoning
+
+rules:
+  - id: tool-shadow-read
+    name: Tool Shadows Built-in Read
+    description: "Tool definition that shadows the built-in Read tool"
+    severity: high
+    category: tool-poisoning
+    pattern: '(?:name|tool_name|function)\s*[=:]\s*[''"](?:Read|ReadFile|read_file)[''"]'
+    pattern_flags: [IGNORECASE]
+    recommendation: Do not shadow built-in tool names; use unique names for custom tools
+    tags: [tool-poisoning, shadowing]
+
+  - id: tool-shadow-write
+    name: Tool Shadows Built-in Write
+    description: "Tool definition that shadows the built-in Write tool"
+    severity: high
+    category: tool-poisoning
+    pattern: '(?:name|tool_name|function)\s*[=:]\s*[''"](?:Write|WriteFile|write_file)[''"]'
+    pattern_flags: [IGNORECASE]
+    recommendation: Do not shadow built-in tool names; use unique names for custom tools
+    tags: [tool-poisoning, shadowing]
+
+  - id: tool-shadow-bash
+    name: Tool Shadows Built-in Bash
+    description: "Tool definition that shadows the built-in Bash/Shell tool"
+    severity: critical
+    category: tool-poisoning
+    pattern: '(?:name|tool_name|function)\s*[=:]\s*[''"](?:Bash|Shell|Terminal|Execute|RunCommand)[''"]'
+    pattern_flags: [IGNORECASE]
+    recommendation: Do not shadow built-in execution tools; this could intercept all command execution
+    tags: [tool-poisoning, shadowing, critical]
+
+  - id: tool-misleading-description
+    name: Misleading Tool Description
+    description: Tool description does not match its actual behavior keywords
+    severity: medium
+    category: tool-poisoning
+    pattern: '(?:description|desc)\s*[=:]\s*[''"].*(?:safe|read.?only|harmless|just\s+(?:reads|views|displays)).*[''"]'
+    pattern_flags: [IGNORECASE, DOTALL]
+    recommendation: Ensure tool descriptions accurately reflect actual behavior
+    tags: [tool-poisoning, deception]
+    false_positive_note: May flag legitimate read-only tool descriptions
+
+  - id: tool-excessive-permissions
+    name: Excessive Tool Permissions
+    description: Tool requests all permissions or unrestricted access
+    severity: high
+    category: tool-poisoning
+    pattern: '(?:permissions?\s*[=:]\s*\[?\s*[''"]?\*[''"]?\s*\]?|all_?permissions|unrestricted_?access|permissions?\s*[=:]\s*[''"]all[''"])'
+    pattern_flags: [IGNORECASE]
+    recommendation: Follow principle of least privilege; request only necessary permissions
+    tags: [tool-poisoning, permissions]
+
+  - id: tool-hidden-capability
+    name: Hidden Tool Capability
+    description: MCP tool has undeclared capabilities (network, file, exec) not in its description
+    severity: medium
+    category: tool-poisoning
+    pattern: '(?:requests\.(?:get|post|put|delete)|urllib|subprocess|os\.system|eval|exec)\s*\('
+    recommendation: Ensure all tool capabilities are documented in the tool description
+    tags: [tool-poisoning, hidden-behavior]
+    components: ["mcp"]
+    false_positive_note: Scoped to MCP components to avoid flagging normal script code
+
+  - id: tool-intercept-pattern
+    name: Tool Interception Pattern
+    description: Pattern suggesting tool interception or man-in-the-middle behavior
+    severity: high
+    category: tool-poisoning
+    pattern: '(?:intercept|hijack|replace|override|monkey.?patch)\s+(?:the\s+)?(?:tool|function|method|call)'
+    pattern_flags: [IGNORECASE]
+    recommendation: Tools should not intercept or replace other tools
+    tags: [tool-poisoning, interception]
+
+  - id: tool-namespace-collision
+    name: Tool Namespace Collision
+    description: Tool uses a name that could collide with common system tool names
+    severity: low
+    category: tool-poisoning
+    pattern: '(?:name|tool_name)\s*[=:]\s*[''"](?:Search|Browse|Navigate|Edit|Delete|Copy|Move|List|Find|Open|Close|Save|Print|Help|Quit|Exit)[''"]'
+    pattern_flags: [IGNORECASE]
+    recommendation: Use more specific, unique tool names to avoid namespace collisions
+    tags: [tool-poisoning, naming]

@@ -1,0 +1,16 @@
+# Skills Scanner — Runtime Dependencies
+
+pyyaml>=6.0.1
+
+# AI-powered analysis (install the provider packages you need)
+# pip install langchain                     # Core LangChain
+# pip install langchain-openai              # OpenAI / Azure OpenAI
+# pip install langchain-google-genai        # Google Gemini
+# pip install langchain-anthropic           # Anthropic Claude direct
+# pip install langchain-aws                 # AWS Bedrock
+#
+# Or install via extras:
+#   pip install ".[ai-openai]"
+#   pip install ".[ai-gemini]"
+#   pip install ".[ai-anthropic]"
+#   pip install ".[ai-bedrock]"

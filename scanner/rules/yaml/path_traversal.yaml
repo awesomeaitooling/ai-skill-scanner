@@ -1,0 +1,225 @@
+---
+metadata:
+  name: "Path Traversal Rules"
+  description: "Detects path traversal and unsafe file access patterns"
+  version: "1.0.0"
+  author: "Security Team"
+  category: "path-security"
+
+rules:
+  # Path traversal patterns
+  - id: "path-traversal-unix"
+    name: "Unix Path Traversal"
+    description: "Detects ../ path traversal sequences"
+    severity: "critical"
+    category: "path-traversal"
+    pattern: "\\.\\.\\/|\\.\\./"
+    pattern_flags: []
+    recommendation: "Remove path traversal sequences; use canonical path resolution"
+    references:
+      - "https://owasp.org/www-community/attacks/Path_Traversal"
+    tags: ["path-traversal", "owasp-top10"]
+
+  - id: "path-traversal-windows"
+    name: "Windows Path Traversal"
+    description: "Detects ..\\ path traversal sequences"
+    severity: "critical"
+    category: "path-traversal"
+    pattern: "\\.\\.\\\\"
+    pattern_flags: []
+    recommendation: "Remove path traversal sequences"
+    tags: ["path-traversal", "windows"]
+
+  - id: "path-traversal-url-encoded"
+    name: "URL-Encoded Path Traversal"
+    description: "Detects URL-encoded ../ traversal"
+    severity: "critical"
+    category: "path-traversal"
+    pattern: "%2e%2e%2f|%2e%2e/"
+    pattern_flags: ["IGNORECASE"]
+    recommendation: "Decode and validate paths before use"
+    tags: ["path-traversal", "encoding"]
+
+  - id: "path-traversal-double-encoded"
+    name: "Double URL-Encoded Traversal"
+    description: "Detects double URL-encoded traversal attempts"
+    severity: "critical"
+    category: "path-traversal"
+    pattern: "%252e%252e%252f"
+    pattern_flags: ["IGNORECASE"]
+    recommendation: "Validate paths after full decoding"
+    tags: ["path-traversal", "encoding", "evasion"]
+
+  # Sensitive file access
+  - id: "sensitive-file-passwd"
+    name: "System Password File Access"
+    description: "Detects access to /etc/passwd"
+    severity: "high"
+    category: "sensitive-file"
+    pattern: "/etc/passwd"
+    pattern_flags: []
+    recommendation: "Avoid accessing system files"
+    tags: ["sensitive-file", "system"]
+
+  - id: "sensitive-file-shadow"
+    name: "System Shadow File Access"
+    description: "Detects access to /etc/shadow"
+    severity: "critical"
+    category: "sensitive-file"
+    pattern: "/etc/shadow"
+    pattern_flags: []
+    recommendation: "Never access password shadow files"
+    tags: ["sensitive-file", "system", "password"]
+
+  - id: "sensitive-file-ssh"
+    name: "SSH Directory Access"
+    description: "Detects access to SSH directories"
+    severity: "high"
+    category: "sensitive-file"
+    pattern: "~?/?\\.ssh/"
+    pattern_flags: []
+    recommendation: "Avoid accessing SSH directories"
+    tags: ["sensitive-file", "ssh"]
+
+  - id: "sensitive-file-env"
+    name: "Environment File Access"
+    description: "Detects access to .env files"
+    severity: "high"
+    category: "sensitive-file"
+    pattern: "\\.env\\b"
+    pattern_flags: []
+    recommendation: "Protect environment files from exposure"
+    tags: ["sensitive-file", "secrets"]
+
+  - id: "sensitive-file-git"
+    name: "Git Directory Access"
+    description: "Detects access to .git directories"
+    severity: "medium"
+    category: "sensitive-file"
+    pattern: "\\.git/"
+    pattern_flags: []
+    recommendation: "Protect .git directories from exposure"
+    tags: ["sensitive-file", "git"]
+
+  - id: "sensitive-file-aws-creds"
+    name: "AWS Credentials Access"
+    description: "Detects access to AWS credential files"
+    severity: "high"
+    category: "sensitive-file"
+    pattern: "\\.aws/(credentials|config)"
+    pattern_flags: []
+    recommendation: "Protect AWS credential files"
+    tags: ["sensitive-file", "aws"]
+
+  - id: "sensitive-file-kube-config"
+    name: "Kubernetes Config Access"
+    description: "Detects access to Kubernetes config"
+    severity: "high"
+    category: "sensitive-file"
+    pattern: "\\.kube/config"
+    pattern_flags: []
+    recommendation: "Protect Kubernetes configuration"
+    tags: ["sensitive-file", "kubernetes"]
+
+  - id: "sensitive-file-npmrc"
+    name: "NPM Config Access"
+    description: "Detects access to .npmrc (may contain tokens)"
+    severity: "medium"
+    category: "sensitive-file"
+    pattern: "\\.npmrc"
+    pattern_flags: []
+    recommendation: "Protect npm configuration files"
+    tags: ["sensitive-file", "npm"]
+
+  - id: "sensitive-file-pypirc"
+    name: "PyPI Config Access"
+    description: "Detects access to .pypirc (may contain tokens)"
+    severity: "medium"
+    category: "sensitive-file"
+    pattern: "\\.pypirc"
+    pattern_flags: []
+    recommendation: "Protect PyPI configuration files"
+    tags: ["sensitive-file", "python"]
+
+  - id: "sensitive-file-database"
+    name: "Database File Access"
+    description: "Detects access to database files"
+    severity: "high"
+    category: "sensitive-file"
+    pattern: "\\.(sqlite|db)$"
+    pattern_flags: ["IGNORECASE"]
+    recommendation: "Protect database files"
+    tags: ["sensitive-file", "database"]
+
+  # Dangerous directory patterns
+  - id: "dangerous-dir-home"
+    name: "Home Directory Reference"
+    description: "Detects references to home directory"
+    severity: "medium"
+    category: "dangerous-directory"
+    pattern: "~/|\\$HOME"
+    pattern_flags: []
+    recommendation: "Use application-specific directories instead of home"
+    tags: ["path-security"]
+
+  - id: "dangerous-dir-root"
+    name: "Root Directory Reference"
+    description: "Detects references to root home directory"
+    severity: "high"
+    category: "dangerous-directory"
+    pattern: "/root/"
+    pattern_flags: []
+    recommendation: "Avoid accessing root's home directory"
+    tags: ["path-security", "privilege"]
+
+  - id: "dangerous-dir-proc"
+    name: "Proc Filesystem Access"
+    description: "Detects access to /proc filesystem"
+    severity: "medium"
+    category: "dangerous-directory"
+    pattern: "/proc/"
+    pattern_flags: []
+    recommendation: "Limit /proc access to necessary operations"
+    tags: ["path-security", "system"]
+
+  - id: "dangerous-dir-tmp"
+    name: "Temp Directory Usage"
+    description: "Detects use of /tmp directory"
+    severity: "low"
+    category: "dangerous-directory"
+    pattern: "/tmp/"
+    pattern_flags: []
+    recommendation: "Use secure temp file creation methods"
+    tags: ["path-security", "temp"]
+
+  # Unrestricted access patterns
+  - id: "unrestricted-file-read"
+    name: "Unrestricted File Read"
+    description: "Detects unrestricted file read permissions"
+    severity: "high"
+    category: "access-control"
+    pattern: "read\\s+any\\s+file"
+    pattern_flags: ["IGNORECASE"]
+    recommendation: "Limit file access to specific directories"
+    tags: ["access-control"]
+
+  - id: "unrestricted-file-write"
+    name: "Unrestricted File Write"
+    description: "Detects unrestricted file write permissions"
+    severity: "high"
+    category: "access-control"
+    pattern: "write\\s+to\\s+any"
+    pattern_flags: ["IGNORECASE"]
+    recommendation: "Limit write access to specific directories"
+    tags: ["access-control"]
+
+  - id: "unrestricted-file-access"
+    name: "Unrestricted File Access"
+    description: "Detects unrestricted file access permissions"
+    severity: "high"
+    category: "access-control"
+    pattern: "access\\s+all\\s+files"
+    pattern_flags: ["IGNORECASE"]
+    recommendation: "Implement least-privilege file access"
+    tags: ["access-control"]
+

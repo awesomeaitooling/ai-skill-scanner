@@ -1,0 +1,203 @@
+---
+metadata:
+  name: "Supply Chain Security Rules"
+  description: "Detects supply chain security risks and dependency issues"
+  version: "1.0.0"
+  author: "Security Team"
+  category: "supply-chain"
+
+rules:
+  # Remote code loading
+  - id: "supply-chain-remote-import"
+    name: "Remote Module Import"
+    description: "Detects import from remote URLs"
+    severity: "critical"
+    category: "remote-code"
+    pattern: "import\\s+.+\\s+from\\s+['\"]https?://"
+    pattern_flags: ["IGNORECASE"]
+    recommendation: "Avoid importing modules from remote URLs; use package managers"
+    references:
+      - "https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/10-Business_Logic_Testing/09-Test_Upload_of_Malicious_Files"
+    tags: ["supply-chain", "remote-code"]
+
+  - id: "supply-chain-remote-require"
+    name: "Remote Require"
+    description: "Detects require() from remote URLs"
+    severity: "critical"
+    category: "remote-code"
+    pattern: "require\\s*\\(['\"]https?://"
+    pattern_flags: ["IGNORECASE"]
+    recommendation: "Use local dependencies instead of remote requires"
+    tags: ["supply-chain", "remote-code", "javascript"]
+
+  - id: "supply-chain-dynamic-import"
+    name: "Dynamic Import"
+    description: "Detects dynamic import with non-literal path which could load arbitrary code"
+    severity: "medium"
+    category: "remote-code"
+    pattern: "import\\s*\\(\\s*[^'\"`\\s)]"
+    pattern_flags: []
+    recommendation: "Avoid dynamic imports with user-controlled paths"
+    tags: ["supply-chain", "dynamic-code", "javascript"]
+
+  - id: "supply-chain-npm-install-url"
+    name: "NPM Install from URL"
+    description: "Detects npm install from URL"
+    severity: "high"
+    category: "package-install"
+    pattern: "npm\\s+install\\s+https?://"
+    pattern_flags: ["IGNORECASE"]
+    recommendation: "Install packages from npm registry; verify sources"
+    tags: ["supply-chain", "npm"]
+
+  - id: "supply-chain-pip-install-url"
+    name: "Pip Install from URL"
+    description: "Detects pip install from URL"
+    severity: "high"
+    category: "package-install"
+    pattern: "pip\\s+install\\s+https?://"
+    pattern_flags: ["IGNORECASE"]
+    recommendation: "Install packages from PyPI; verify sources"
+    tags: ["supply-chain", "pip", "python"]
+
+  - id: "supply-chain-pip-install-git"
+    name: "Pip Install from Git"
+    description: "Detects pip install from git repository"
+    severity: "medium"
+    category: "package-install"
+    pattern: "pip\\s+install\\s+git\\+"
+    pattern_flags: ["IGNORECASE"]
+    recommendation: "Review git-based package sources"
+    tags: ["supply-chain", "pip", "git"]
+
+  # Integrity verification
+  - id: "supply-chain-no-lockfile"
+    name: "Missing Lock File Reference"
+    description: "Detects npm install without lock file enforcement"
+    severity: "low"
+    category: "integrity"
+    pattern: "npm\\s+install(?!.*--frozen-lockfile)"
+    pattern_flags: ["IGNORECASE"]
+    recommendation: "Use lock files (npm ci, pip freeze) for reproducible builds"
+    tags: ["supply-chain", "integrity"]
+
+  - id: "supply-chain-no-checksum"
+    name: "Download Without Checksum"
+    description: "Detects download commands without checksum verification"
+    severity: "medium"
+    category: "integrity"
+    pattern: "(curl|wget)\\s+[^|;]*(?!sha256|sha512|checksum)"
+    pattern_flags: ["IGNORECASE"]
+    recommendation: "Verify checksums for downloaded files"
+    tags: ["supply-chain", "integrity"]
+    enabled: false
+    false_positive_note: "Disabled: negative lookahead is at wrong position and matches nearly every curl/wget invocation"
+
+  # Typosquatting indicators
+  - id: "supply-chain-typosquat-lodash"
+    name: "Potential Lodash Typosquatting"
+    description: "Detects potential typosquatting of lodash"
+    severity: "high"
+    category: "typosquatting"
+    pattern: "l[o0]d[a@]sh[^a-z]|lodash[0-9]|lod-ash"
+    pattern_flags: ["IGNORECASE"]
+    recommendation: "Verify package name is correct"
+    tags: ["supply-chain", "typosquatting"]
+
+  - id: "supply-chain-typosquat-axios"
+    name: "Potential Axios Typosquatting"
+    description: "Detects potential typosquatting of axios"
+    severity: "high"
+    category: "typosquatting"
+    pattern: "axi[o0]ss|ax[i1]os|axios[0-9]"
+    pattern_flags: ["IGNORECASE"]
+    recommendation: "Verify package name is correct"
+    tags: ["supply-chain", "typosquatting"]
+
+  - id: "supply-chain-typosquat-request"
+    name: "Potential Request Typosquatting"
+    description: "Detects potential typosquatting of request library"
+    severity: "high"
+    category: "typosquatting"
+    pattern: "r[e3]qu[e3]st[0-9s]|reqeust"
+    pattern_flags: ["IGNORECASE"]
+    recommendation: "Verify package name is correct"
+    tags: ["supply-chain", "typosquatting"]
+    exclude_patterns:
+      - "\\brequests\\b"
+
+  # Suspicious package patterns
+  - id: "supply-chain-postinstall-script"
+    name: "Post-install Script"
+    description: "Detects post-install script which may run arbitrary code"
+    severity: "medium"
+    category: "package-scripts"
+    pattern: "\"postinstall\"\\s*:|\"preinstall\"\\s*:"
+    pattern_flags: []
+    recommendation: "Review post-install scripts for security"
+    tags: ["supply-chain", "npm", "scripts"]
+
+  - id: "supply-chain-lifecycle-hook"
+    name: "NPM Lifecycle Hook"
+    description: "Detects npm lifecycle hooks that could execute code"
+    severity: "medium"
+    category: "package-scripts"
+    pattern: "\"(preinstall|postinstall|prepublish|postpublish|prepack|postpack)\"\\s*:"
+    pattern_flags: []
+    recommendation: "Audit lifecycle hooks for security implications"
+    tags: ["supply-chain", "npm", "lifecycle"]
+
+  # Dependency confusion
+  - id: "supply-chain-private-registry"
+    name: "Private Registry Reference"
+    description: "Detects private registry references that could be targeted"
+    severity: "medium"
+    category: "dependency-confusion"
+    pattern: "registry\\s*[:=]\\s*['\"]https?://[^/]+\\.(internal|corp|local)"
+    pattern_flags: ["IGNORECASE"]
+    recommendation: "Ensure private packages are properly scoped"
+    references:
+      - "https://medium.com/@alex.birsan/dependency-confusion-4a5d60fec610"
+    tags: ["supply-chain", "dependency-confusion"]
+
+  - id: "supply-chain-unscoped-internal"
+    name: "Unscoped Internal Package"
+    description: "Detects internal packages without scope"
+    severity: "high"
+    category: "dependency-confusion"
+    pattern: "\"(name|dependencies)\"[^}]*\"(internal|private|corp)-"
+    pattern_flags: ["IGNORECASE"]
+    recommendation: "Use scoped packages (@company/package) for internal packages"
+    tags: ["supply-chain", "dependency-confusion", "npm"]
+
+  # Code evaluation
+  - id: "supply-chain-eval-base64"
+    name: "Eval of Base64 Decoded Content"
+    description: "Detects eval of base64 decoded content"
+    severity: "critical"
+    category: "obfuscation"
+    pattern: "eval\\s*\\([^)]*base64|atob\\s*\\([^)]*\\)\\s*\\)"
+    pattern_flags: ["IGNORECASE"]
+    recommendation: "Never eval decoded content; review for malicious code"
+    tags: ["supply-chain", "obfuscation", "malware"]
+
+  - id: "supply-chain-obfuscated-code"
+    name: "Obfuscated Code Pattern"
+    description: "Detects patterns common in obfuscated malicious code"
+    severity: "high"
+    category: "obfuscation"
+    pattern: "\\\\x[0-9a-f]{2}\\\\x[0-9a-f]{2}\\\\x[0-9a-f]{2}"
+    pattern_flags: ["IGNORECASE"]
+    recommendation: "Review obfuscated code sections"
+    tags: ["supply-chain", "obfuscation"]
+
+  - id: "supply-chain-char-code"
+    name: "Character Code Obfuscation"
+    description: "Detects character code concatenation often used in malware"
+    severity: "high"
+    category: "obfuscation"
+    pattern: "String\\.fromCharCode\\s*\\([^)]{20,}\\)"
+    pattern_flags: []
+    recommendation: "Review character code based string construction"
+    tags: ["supply-chain", "obfuscation", "javascript"]
+

@@ -1,0 +1,116 @@
+metadata:
+  name: Unicode Steganography Rules
+  description: Detects hidden unicode characters — zero-width joiners, RTL overrides, tag characters, homoglyphs
+  version: "1.0.0"
+  author: Skills Scanner
+  category: unicode-steganography
+
+rules:
+  - id: unicode-zero-width-space
+    name: Zero-Width Space Character
+    description: "Zero-width space (U+200B) detected — may hide content from visual inspection"
+    severity: high
+    category: unicode-steganography
+    pattern: "\u200b"
+    recommendation: Remove zero-width characters; they can hide malicious instructions
+    tags: [unicode, steganography, evasion]
+
+  - id: unicode-zero-width-non-joiner
+    name: Zero-Width Non-Joiner
+    description: "Zero-width non-joiner (U+200C) detected"
+    severity: high
+    category: unicode-steganography
+    pattern: "\u200c"
+    recommendation: Remove zero-width characters; they can hide malicious instructions
+    tags: [unicode, steganography, evasion]
+
+  - id: unicode-zero-width-joiner
+    name: Zero-Width Joiner
+    description: "Zero-width joiner (U+200D) detected"
+    severity: high
+    category: unicode-steganography
+    pattern: "\u200d"
+    recommendation: Remove zero-width characters unless they are used for valid emoji sequences
+    tags: [unicode, steganography, evasion]
+
+  - id: unicode-bom
+    name: Byte Order Mark (BOM)
+    description: "Byte order mark (U+FEFF) detected in content (not at file start)"
+    severity: medium
+    category: unicode-steganography
+    pattern: "(?!^)\ufeff"
+    recommendation: BOM characters inside content (not at start) may be used for steganography
+    tags: [unicode, steganography]
+
+  - id: unicode-rtl-override
+    name: Right-to-Left Override
+    description: "RTL override character (U+202E) detected — can reverse text display to hide content"
+    severity: critical
+    category: unicode-steganography
+    pattern: "\u202e"
+    recommendation: RTL override characters can make malicious code appear benign; remove immediately
+    tags: [unicode, steganography, evasion, critical]
+
+  - id: unicode-rtl-embedding
+    name: Right-to-Left Embedding
+    description: "RTL embedding character (U+202B) detected"
+    severity: high
+    category: unicode-steganography
+    pattern: "\u202b"
+    recommendation: RTL embedding can disguise text direction; remove unless required for RTL language content
+    tags: [unicode, steganography, evasion]
+
+  - id: unicode-ltr-override
+    name: Left-to-Right Override
+    description: "LTR override character (U+202D) detected"
+    severity: medium
+    category: unicode-steganography
+    pattern: "\u202d"
+    recommendation: Directional override characters can disguise content; review necessity
+    tags: [unicode, steganography]
+
+  - id: unicode-pop-directional
+    name: Pop Directional Formatting
+    description: "Pop directional formatting (U+202C) detected"
+    severity: medium
+    category: unicode-steganography
+    pattern: "\u202c"
+    recommendation: Directional formatting characters should be paired and justified
+    tags: [unicode, steganography]
+
+  - id: unicode-tag-characters
+    name: Unicode Tag Characters
+    description: "Unicode tag characters (U+E0001-E007F) detected — used for invisible data encoding"
+    severity: critical
+    category: unicode-steganography
+    pattern: "[\U000e0001-\U000e007f]"
+    recommendation: Tag characters are invisible and can encode hidden data; remove immediately
+    tags: [unicode, steganography, evasion, critical]
+
+  - id: unicode-variation-selector
+    name: Variation Selector Characters
+    description: "Variation selector characters (U+FE00-FE0F) detected in non-emoji context"
+    severity: low
+    category: unicode-steganography
+    pattern: "[\ufe00-\ufe0f]"
+    recommendation: Variation selectors in non-emoji text may indicate steganography
+    tags: [unicode, steganography]
+
+  - id: unicode-soft-hyphen
+    name: Soft Hyphen Characters
+    description: "Soft hyphen (U+00AD) detected — invisible in most renderings"
+    severity: low
+    category: unicode-steganography
+    pattern: "\u00ad"
+    recommendation: Soft hyphens are invisible and can be used to hide content boundaries
+    tags: [unicode, steganography]
+
+  - id: unicode-homoglyph-cyrillic
+    name: Cyrillic Homoglyph Characters
+    description: "Cyrillic characters detected — may indicate homoglyph attack when mixed with Latin text, or legitimate Cyrillic content"
+    severity: medium
+    category: unicode-steganography
+    pattern: "[\u0400-\u04ff]"
+    recommendation: Cyrillic characters mixed with Latin text may be a homoglyph attack; verify character encoding
+    tags: [unicode, homoglyph, evasion]
+    false_positive_note: "Will match legitimate Russian/Ukrainian/etc. text; review in context of surrounding Latin characters"

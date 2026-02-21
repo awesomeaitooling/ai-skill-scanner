@@ -1,0 +1,164 @@
+---
+metadata:
+  name: "MCP Server Security Rules"
+  description: "Security rules specific to MCP (Model Context Protocol) servers"
+  version: "1.0.0"
+  author: "Security Team"
+  category: "mcp"
+
+rules:
+  # Tool exposure risks
+  - id: "mcp-dangerous-tool-shell"
+    name: "MCP Shell Tool Exposed"
+    description: "MCP server exposes shell execution tool"
+    severity: "critical"
+    category: "mcp-tools"
+    pattern: "\"tools?\"[^}]*\"(shell|execute|exec|run_command|bash|sh)\""
+    pattern_flags: ["IGNORECASE", "DOTALL"]
+    recommendation: "Restrict shell execution tools; add approval workflows"
+    tags: ["mcp", "tools", "shell"]
+
+  - id: "mcp-dangerous-tool-file-write"
+    name: "MCP File Write Tool"
+    description: "MCP server exposes file write tool"
+    severity: "high"
+    category: "mcp-tools"
+    pattern: "\"tools?\"[^}]*\"(write_file|save_file|create_file)\""
+    pattern_flags: ["IGNORECASE", "DOTALL"]
+    recommendation: "Restrict file write operations to specific directories"
+    tags: ["mcp", "tools", "filesystem"]
+
+  - id: "mcp-dangerous-tool-file-delete"
+    name: "MCP File Delete Tool"
+    description: "MCP server exposes file delete tool"
+    severity: "high"
+    category: "mcp-tools"
+    pattern: "\"tools?\"[^}]*\"(delete_file|remove_file|unlink)\""
+    pattern_flags: ["IGNORECASE", "DOTALL"]
+    recommendation: "Add confirmation for file deletion operations"
+    tags: ["mcp", "tools", "filesystem", "destructive"]
+
+  - id: "mcp-dangerous-tool-network"
+    name: "MCP Network Tool"
+    description: "MCP server exposes network access tool"
+    severity: "high"
+    category: "mcp-tools"
+    pattern: "\"tools?\"[^}]*\"(http_request|fetch|curl|download)\""
+    pattern_flags: ["IGNORECASE", "DOTALL"]
+    recommendation: "Restrict network tools to approved domains"
+    tags: ["mcp", "tools", "network"]
+
+  - id: "mcp-dangerous-tool-database"
+    name: "MCP Database Tool"
+    description: "MCP server exposes database access tool"
+    severity: "high"
+    category: "mcp-tools"
+    pattern: "\"tools?\"[^}]*\"(sql|query|database|db_)\""
+    pattern_flags: ["IGNORECASE", "DOTALL"]
+    recommendation: "Use parameterized queries; restrict database operations"
+    tags: ["mcp", "tools", "database"]
+
+  # Resource exposure risks
+  - id: "mcp-resource-secrets"
+    name: "MCP Secrets Resource"
+    description: "MCP server exposes secrets or credentials resource"
+    severity: "critical"
+    category: "mcp-resources"
+    pattern: "\"resources?\"[^}]*\"(secret|credential|password|key|token)\""
+    pattern_flags: ["IGNORECASE", "DOTALL"]
+    recommendation: "Never expose secrets as MCP resources"
+    tags: ["mcp", "resources", "secrets"]
+
+  - id: "mcp-resource-env"
+    name: "MCP Environment Resource"
+    description: "MCP server exposes environment variables"
+    severity: "high"
+    category: "mcp-resources"
+    pattern: "\"resources?\"[^}]*\"(env|environment|config)\""
+    pattern_flags: ["IGNORECASE", "DOTALL"]
+    recommendation: "Limit exposure of environment configuration"
+    tags: ["mcp", "resources", "config"]
+
+  - id: "mcp-resource-database"
+    name: "MCP Database Resource"
+    description: "MCP server exposes database content as resource"
+    severity: "high"
+    category: "mcp-resources"
+    pattern: "\"resources?\"[^}]*\"(database|db|table|collection)\""
+    pattern_flags: ["IGNORECASE", "DOTALL"]
+    recommendation: "Implement access controls for database resources"
+    tags: ["mcp", "resources", "database"]
+
+  # Authentication and authorization
+  - id: "mcp-no-auth"
+    name: "MCP Without Authentication"
+    description: "MCP server configured without authentication"
+    severity: "high"
+    category: "mcp-auth"
+    pattern: "\"auth\"\\s*:\\s*(false|null)|\"authentication\"\\s*:\\s*(false|null)"
+    pattern_flags: ["IGNORECASE"]
+    recommendation: "Enable authentication for MCP servers"
+    tags: ["mcp", "authentication"]
+
+  - id: "mcp-allow-all"
+    name: "MCP Allows All Callers"
+    description: "MCP server allows all callers without restriction"
+    severity: "high"
+    category: "mcp-auth"
+    pattern: "\"allow\"\\s*:\\s*\\[\\s*\"\\*\"\\s*\\]|\"allow_all\"\\s*:\\s*true"
+    pattern_flags: ["IGNORECASE"]
+    recommendation: "Restrict MCP callers to known clients"
+    tags: ["mcp", "authorization"]
+
+  # Transport security
+  - id: "mcp-insecure-transport"
+    name: "MCP Insecure Transport"
+    description: "MCP server using insecure HTTP transport"
+    severity: "high"
+    category: "mcp-transport"
+    pattern: "\"transport\"[^}]*\"http://|\"url\"\\s*:\\s*\"http://"
+    pattern_flags: ["IGNORECASE", "DOTALL"]
+    recommendation: "Use HTTPS for MCP transport"
+    tags: ["mcp", "transport", "encryption"]
+
+  - id: "mcp-exposed-port"
+    name: "MCP Exposed on All Interfaces"
+    description: "MCP server bound to all interfaces (0.0.0.0)"
+    severity: "medium"
+    category: "mcp-transport"
+    pattern: "\"host\"\\s*:\\s*\"0\\.0\\.0\\.0\"|\"bind\"\\s*:\\s*\"0\\.0\\.0\\.0\""
+    pattern_flags: []
+    recommendation: "Bind MCP to localhost unless external access needed"
+    tags: ["mcp", "transport", "network"]
+
+  # Configuration risks
+  - id: "mcp-debug-enabled"
+    name: "MCP Debug Mode Enabled"
+    description: "MCP server has debug mode enabled"
+    severity: "medium"
+    category: "mcp-config"
+    pattern: "\"debug\"\\s*:\\s*true|\"verbose\"\\s*:\\s*true"
+    pattern_flags: ["IGNORECASE"]
+    recommendation: "Disable debug mode in production"
+    tags: ["mcp", "config", "debug"]
+
+  - id: "mcp-no-rate-limit"
+    name: "MCP Without Rate Limiting"
+    description: "MCP server without rate limiting configuration"
+    severity: "medium"
+    category: "mcp-config"
+    pattern: "\"rate_limit\"\\s*:\\s*(false|null|0)"
+    pattern_flags: ["IGNORECASE"]
+    recommendation: "Enable rate limiting for MCP servers"
+    tags: ["mcp", "config", "dos"]
+
+  - id: "mcp-no-timeout"
+    name: "MCP Without Timeout"
+    description: "MCP server without operation timeout"
+    severity: "low"
+    category: "mcp-config"
+    pattern: "\"timeout\"\\s*:\\s*(false|null|0)"
+    pattern_flags: ["IGNORECASE"]
+    recommendation: "Set appropriate timeouts for MCP operations"
+    tags: ["mcp", "config", "availability"]
+

@@ -1,0 +1,67 @@
+metadata:
+  name: Autonomy Abuse Rules
+  description: Detects unbounded autonomous behavior — infinite retries, no confirmation loops, missing iteration limits
+  version: "1.0.0"
+  author: Skills Scanner
+  category: autonomy-abuse
+
+rules:
+  - id: autonomy-no-confirmation
+    name: No User Confirmation
+    description: Instruction to proceed without user confirmation on destructive actions
+    severity: high
+    category: autonomy-abuse
+    pattern: '(?:do\s+not\s+(?:ask|prompt|wait)\s+(?:for\s+)?(?:confirmation|approval|permission)|proceed\s+without\s+(?:asking|confirmation|approval)|skip\s+confirmation|auto-?(?:approve|confirm))'
+    pattern_flags: [IGNORECASE]
+    recommendation: Always confirm destructive or irreversible actions with the user
+    tags: [autonomy, safety]
+
+  - id: autonomy-unbounded-retry
+    name: Unbounded Retry
+    description: Instruction to retry indefinitely without limits
+    severity: high
+    category: autonomy-abuse
+    pattern: '(?:retry\s+(?:until\s+(?:success|it\s+works)|indefinitely|forever|without\s+limit)|keep\s+(?:trying|retrying)\s+(?:until|indefinitely|forever)|never\s+give\s+up|try\s+again\s+(?:and\s+again|forever))'
+    pattern_flags: [IGNORECASE]
+    recommendation: Set maximum retry counts and backoff intervals
+    tags: [autonomy, dos]
+
+  - id: autonomy-loop-no-limit
+    name: Loop Without Iteration Limit
+    description: Instruction to loop without specifying an upper bound
+    severity: medium
+    category: autonomy-abuse
+    pattern: '(?:loop\s+(?:until|forever|indefinitely)|repeat\s+(?:until|forever|indefinitely)|iterate\s+(?:until|forever|without\s+limit)|no\s+(?:iteration|loop|retry)\s+limit)'
+    pattern_flags: [IGNORECASE]
+    recommendation: Always specify iteration limits to prevent runaway behavior
+    tags: [autonomy, dos]
+
+  - id: autonomy-auto-execute
+    name: Automatic Execution Without Approval
+    description: Instruction to automatically execute actions without approval
+    severity: high
+    category: autonomy-abuse
+    pattern: '(?:automatically\s+(?:execute|run|apply|deploy|install|delete|modify)|auto-?(?:execute|run|deploy|install|delete)|execute\s+(?:immediately|without\s+(?:review|approval)))'
+    pattern_flags: [IGNORECASE]
+    recommendation: Require explicit user approval before executing destructive actions
+    tags: [autonomy, safety]
+
+  - id: autonomy-self-modify
+    name: Self-Modification
+    description: Instruction for the skill/agent to modify its own behavior
+    severity: high
+    category: autonomy-abuse
+    pattern: '(?:modify\s+(?:your|its|own)\s+(?:behavior|instructions|rules|config)|change\s+(?:your|its|own)\s+(?:behavior|rules)|self-?(?:modify|update|configure|evolve)|update\s+(?:your|its|own)\s+(?:instructions|rules))'
+    pattern_flags: [IGNORECASE]
+    recommendation: Skills/agents should not modify their own behavior; remove self-modification instructions
+    tags: [autonomy, integrity]
+
+  - id: autonomy-escalate-scope
+    name: Scope Escalation
+    description: Instruction to expand capabilities or scope beyond initial definition
+    severity: medium
+    category: autonomy-abuse
+    pattern: '(?:expand\s+(?:your|its)\s+(?:capabilities|scope|access)|gain\s+(?:additional|more|extra)\s+(?:capabilities|access|permissions)|escalate\s+(?:your|its)\s+(?:privileges|permissions|access))'
+    pattern_flags: [IGNORECASE]
+    recommendation: Skills should operate within their declared scope; do not escalate capabilities
+    tags: [autonomy, privilege-escalation]

@@ -1,0 +1,220 @@
+---
+metadata:
+  name: "Command Injection Rules"
+  description: "Detects command injection and shell exploitation patterns"
+  version: "1.0.0"
+  author: "Security Team"
+  category: "injection"
+
+rules:
+  - id: "cmd-injection-backtick"
+    name: "Backtick Command Substitution"
+    description: "Detects backtick command substitution which can execute arbitrary commands"
+    severity: "critical"
+    category: "command-injection"
+    # Match single backticks with command-like content, exclude markdown code blocks (triple backticks)
+    pattern: "(?<!`)`(?!`)[^`\\n]{1,100}`(?!`)"
+    pattern_flags: []
+    recommendation: "Avoid dynamic command construction; use parameterized commands"
+    references:
+      - "https://owasp.org/www-community/attacks/Command_Injection"
+    tags: ["command-injection", "shell"]
+    components: ["script", "hook"]
+
+  - id: "cmd-injection-subshell"
+    name: "Command Substitution $()"
+    description: "Detects $() command substitution"
+    severity: "critical"
+    category: "command-injection"
+    pattern: "\\$\\([^)]{1,200}\\)"
+    pattern_flags: []
+    recommendation: "Avoid dynamic command construction"
+    tags: ["command-injection", "shell"]
+
+  - id: "cmd-injection-variable-expansion"
+    name: "Variable Expansion"
+    description: "Detects ${} variable expansion which could be exploited"
+    severity: "high"
+    category: "command-injection"
+    pattern: "\\$\\{[^}]{1,100}\\}"
+    pattern_flags: []
+    recommendation: "Validate and sanitize variable expansions"
+    tags: ["command-injection", "shell"]
+
+  - id: "cmd-injection-semicolon"
+    name: "Command Chaining with Semicolon"
+    description: "Detects semicolon command chaining"
+    severity: "medium"
+    category: "command-injection"
+    pattern: ";\\s*[a-zA-Z]"
+    pattern_flags: []
+    recommendation: "Avoid command chaining operators"
+    tags: ["command-injection", "shell"]
+    components: ["script", "hook"]
+
+  - id: "cmd-injection-pipe"
+    name: "Pipe to Command"
+    description: "Detects pipe operator to another command"
+    severity: "medium"
+    category: "command-injection"
+    pattern: "\\|\\s*[a-zA-Z]"
+    pattern_flags: []
+    recommendation: "Review pipe usage for injection risks"
+    tags: ["command-injection", "shell"]
+    components: ["script", "hook"]
+
+  - id: "cmd-injection-and-chain"
+    name: "AND Command Chaining"
+    description: "Detects && command chaining"
+    severity: "medium"
+    category: "command-injection"
+    pattern: "&&\\s*[a-zA-Z]"
+    pattern_flags: []
+    recommendation: "Avoid command chaining operators"
+    tags: ["command-injection", "shell"]
+    components: ["script", "hook"]
+
+  - id: "cmd-injection-or-chain"
+    name: "OR Command Chaining"
+    description: "Detects || command chaining"
+    severity: "medium"
+    category: "command-injection"
+    pattern: "\\|\\|\\s*[a-zA-Z]"
+    pattern_flags: []
+    recommendation: "Avoid command chaining operators"
+    tags: ["command-injection", "shell"]
+    components: ["script", "hook"]
+
+  - id: "cmd-injection-output-redirect"
+    name: "Output Redirection to Absolute Path"
+    description: "Detects output redirection to absolute paths"
+    severity: "high"
+    category: "command-injection"
+    pattern: ">\\s*/"
+    pattern_flags: []
+    recommendation: "Avoid output redirection to absolute paths"
+    tags: ["command-injection", "file-write"]
+
+  - id: "cmd-injection-input-redirect"
+    name: "Input Redirection from Absolute Path"
+    description: "Detects input redirection from absolute paths"
+    severity: "medium"
+    category: "command-injection"
+    pattern: "<\\s*/"
+    pattern_flags: []
+    recommendation: "Validate input redirection sources"
+    tags: ["command-injection", "file-read"]
+
+  - id: "cmd-injection-eval"
+    name: "Eval Function Call"
+    description: "Detects eval() function calls which execute arbitrary code"
+    severity: "critical"
+    category: "command-injection"
+    pattern: "eval\\s*\\("
+    pattern_flags: ["IGNORECASE"]
+    recommendation: "Never use eval with untrusted input"
+    tags: ["command-injection", "code-execution"]
+
+  - id: "cmd-injection-exec"
+    name: "Exec Function Call"
+    description: "Detects exec() function calls"
+    severity: "critical"
+    category: "command-injection"
+    pattern: "exec\\s*\\("
+    pattern_flags: ["IGNORECASE"]
+    recommendation: "Avoid exec with untrusted input"
+    tags: ["command-injection", "code-execution"]
+
+  - id: "cmd-injection-os-system"
+    name: "OS System Call"
+    description: "Detects os.system() calls"
+    severity: "critical"
+    category: "command-injection"
+    pattern: "os\\.system\\s*\\("
+    pattern_flags: []
+    recommendation: "Use subprocess with shell=False instead"
+    tags: ["command-injection", "python"]
+
+  - id: "cmd-injection-subprocess"
+    name: "Subprocess Module Usage"
+    description: "Detects subprocess module usage which may execute commands"
+    severity: "medium"
+    category: "command-injection"
+    pattern: "subprocess\\."
+    pattern_flags: []
+    recommendation: "Ensure subprocess uses shell=False"
+    tags: ["command-injection", "python"]
+
+  - id: "cmd-injection-shell-true"
+    name: "Shell Execution Enabled"
+    description: "Detects shell=True which enables shell command execution"
+    severity: "critical"
+    category: "command-injection"
+    pattern: "shell\\s*=\\s*True"
+    pattern_flags: []
+    recommendation: "Use shell=False and pass arguments as list"
+    tags: ["command-injection", "python"]
+
+  # Dangerous commands
+  - id: "cmd-dangerous-rm-rf"
+    name: "Recursive Delete Command"
+    description: "Detects rm -rf which can delete entire filesystems"
+    severity: "critical"
+    category: "dangerous-command"
+    pattern: "rm\\s+-rf"
+    pattern_flags: ["IGNORECASE"]
+    recommendation: "Avoid recursive delete commands"
+    tags: ["dangerous-command", "destructive"]
+
+  - id: "cmd-dangerous-curl-pipe-sh"
+    name: "Curl Pipe to Shell"
+    description: "Detects curl piped to shell - remote code execution"
+    severity: "critical"
+    category: "dangerous-command"
+    pattern: "curl\\s+[^|]*\\|\\s*(ba)?sh"
+    pattern_flags: ["IGNORECASE"]
+    recommendation: "Never pipe curl output directly to shell"
+    references:
+      - "https://owasp.org/www-community/attacks/Command_Injection"
+    tags: ["dangerous-command", "rce"]
+
+  - id: "cmd-dangerous-wget-pipe-sh"
+    name: "Wget Pipe to Shell"
+    description: "Detects wget piped to shell - remote code execution"
+    severity: "critical"
+    category: "dangerous-command"
+    pattern: "wget\\s+[^|]*\\|\\s*(ba)?sh"
+    pattern_flags: ["IGNORECASE"]
+    recommendation: "Never pipe wget output directly to shell"
+    tags: ["dangerous-command", "rce"]
+
+  - id: "cmd-dangerous-chmod-777"
+    name: "Overly Permissive chmod"
+    description: "Detects chmod 777 which grants all permissions"
+    severity: "high"
+    category: "dangerous-command"
+    pattern: "chmod\\s+777"
+    pattern_flags: []
+    recommendation: "Use minimal required permissions"
+    tags: ["dangerous-command", "permissions"]
+
+  - id: "cmd-dangerous-netcat"
+    name: "Netcat with Execute"
+    description: "Detects netcat with execute flag - reverse shell risk"
+    severity: "critical"
+    category: "dangerous-command"
+    pattern: "nc\\s+-e"
+    pattern_flags: []
+    recommendation: "Avoid netcat with execute capabilities"
+    tags: ["dangerous-command", "reverse-shell"]
+
+  - id: "cmd-dangerous-bash-dev-tcp"
+    name: "Bash Network Redirection"
+    description: "Detects bash /dev/tcp for network connections"
+    severity: "critical"
+    category: "dangerous-command"
+    pattern: "/dev/tcp/"
+    pattern_flags: []
+    recommendation: "Block /dev/tcp network redirection"
+    tags: ["dangerous-command", "reverse-shell"]
+

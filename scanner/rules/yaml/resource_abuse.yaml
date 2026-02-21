@@ -1,0 +1,110 @@
+metadata:
+  name: Resource Abuse Rules
+  description: Detects denial-of-service patterns — infinite loops, fork bombs, memory exhaustion, excessive recursion
+  version: "1.0.0"
+  author: Skills Scanner
+  category: resource-abuse
+
+rules:
+  - id: resource-while-true
+    name: Infinite Loop (while True)
+    description: Potential infinite loop detected (while True without obvious exit)
+    severity: high
+    category: resource-abuse
+    pattern: 'while\s+True\s*:'
+    pattern_flags: [IGNORECASE]
+    recommendation: Ensure loop has a break condition, timeout, or iteration limit
+    tags: [python, dos]
+
+  - id: resource-for-infinite-js
+    name: Infinite Loop (for(;;))
+    description: Infinite loop in JavaScript/TypeScript
+    severity: high
+    category: resource-abuse
+    pattern: 'for\s*\(\s*;\s*;\s*\)'
+    recommendation: Add exit conditions and iteration limits
+    tags: [javascript, dos]
+
+  - id: resource-while-1
+    name: Infinite Loop (while(1))
+    description: Infinite loop using while(1) or while(true)
+    severity: high
+    category: resource-abuse
+    pattern: 'while\s*\(\s*(1|true)\s*\)'
+    pattern_flags: [IGNORECASE]
+    recommendation: Add exit conditions and iteration limits
+    tags: [javascript, python, dos]
+
+  - id: resource-fork-bomb-bash
+    name: Fork Bomb (Bash)
+    description: Bash fork bomb pattern detected
+    severity: critical
+    category: resource-abuse
+    pattern: ':\(\)\s*\{.*:\s*\|\s*:.*\}'
+    recommendation: Remove the fork bomb immediately — this will crash the system
+    tags: [bash, dos, critical]
+
+  - id: resource-fork-python
+    name: Fork Bomb (Python)
+    description: os.fork() in a loop (potential fork bomb)
+    severity: critical
+    category: resource-abuse
+    pattern: '(?:while|for)\s.*\n.*os\.fork\(\)'
+    pattern_flags: [MULTILINE]
+    recommendation: Remove os.fork() from loops — this will exhaust system resources
+    tags: [python, dos, critical]
+
+  - id: resource-large-allocation
+    name: Large Memory Allocation
+    description: Very large memory allocation detected
+    severity: high
+    category: resource-abuse
+    pattern: '\[\s*(?:0|None|""|'''')\s*\]\s*\*\s*(?:10{6,}|\d{7,})'
+    recommendation: Reduce allocation size or use generators/iterators for large datasets
+    tags: [python, dos]
+
+  - id: resource-large-range
+    name: Large Range Allocation
+    description: Very large range() allocation that could exhaust memory
+    severity: medium
+    category: resource-abuse
+    pattern: 'range\s*\(\s*\d{7,}\s*\)'
+    recommendation: Use generators or smaller batches for large iterations
+    tags: [python, dos]
+
+  - id: resource-recursive-no-limit
+    name: Recursion Without Limit
+    description: Recursive function without depth limit
+    severity: medium
+    category: resource-abuse
+    pattern: 'sys\.setrecursionlimit\s*\(\s*\d{5,}\s*\)'
+    recommendation: Avoid setting very high recursion limits; use iterative approaches for deep recursion
+    tags: [python, dos]
+
+  - id: resource-sleep-zero
+    name: Busy Wait (sleep(0))
+    description: Busy-wait pattern with sleep(0) or no sleep
+    severity: low
+    category: resource-abuse
+    pattern: 'time\.sleep\s*\(\s*0\s*\)'
+    recommendation: Use appropriate sleep intervals or event-driven patterns
+    tags: [python, dos]
+
+  - id: resource-bash-while-true
+    name: Infinite Loop (Bash while true)
+    description: Bash infinite loop detected
+    severity: high
+    category: resource-abuse
+    pattern: 'while\s+true\s*;\s*do'
+    pattern_flags: [IGNORECASE]
+    recommendation: Ensure the loop has a break condition and timeout
+    tags: [bash, dos]
+
+  - id: resource-itertools-count
+    name: Unbounded Iterator
+    description: itertools.count() without upper bound (infinite iterator)
+    severity: medium
+    category: resource-abuse
+    pattern: 'itertools\.count\s*\('
+    recommendation: Use itertools.islice() to bound the iterator
+    tags: [python, dos]

@@ -1,0 +1,86 @@
+metadata:
+  name: Social Engineering Rules
+  description: Detects social engineering patterns — impersonation, deceptive metadata, trust-inducing language
+  version: "1.0.0"
+  author: Skills Scanner
+  category: social-engineering
+
+rules:
+  - id: social-eng-anthropic-impersonation
+    name: Anthropic Impersonation
+    description: Content impersonates Anthropic or Claude official branding
+    severity: medium
+    category: social-engineering
+    pattern: '(?:anthropic\s+official|claude\s+official|official\s+(?:anthropic|claude)|by\s+anthropic|made\s+by\s+claude)'
+    pattern_flags: [IGNORECASE]
+    recommendation: Do not impersonate Anthropic or Claude; use your own branding
+    tags: [impersonation, metadata]
+
+  - id: social-eng-openai-impersonation
+    name: OpenAI Impersonation
+    description: Content impersonates OpenAI branding
+    severity: medium
+    category: social-engineering
+    pattern: '(?:openai\s+official|official\s+openai|by\s+openai|made\s+by\s+openai)'
+    pattern_flags: [IGNORECASE]
+    recommendation: Do not impersonate OpenAI; use your own branding
+    tags: [impersonation, metadata]
+
+  - id: social-eng-admin-impersonation
+    name: Admin/System Impersonation
+    description: Content claims to be an official system or admin component
+    severity: medium
+    category: social-engineering
+    pattern: '(?:system\s+(?:admin|administrator|component|module)|admin\s+(?:tool|plugin|skill)|official\s+(?:system|admin))'
+    pattern_flags: [IGNORECASE]
+    recommendation: Do not impersonate system/admin roles; use descriptive, honest naming
+    tags: [impersonation, metadata]
+
+  - id: social-eng-trust-phrase
+    name: Trust-Inducing Phrase
+    description: Content uses trust-inducing language to reduce user scrutiny
+    severity: low
+    category: social-engineering
+    pattern: '(?:guaranteed\s+safe|100%\s+secure|completely\s+safe|verified\s+by|certified\s+by|approved\s+by|trusted\s+by|no\s+risk)'
+    pattern_flags: [IGNORECASE]
+    recommendation: Avoid absolute security claims; be honest about capabilities and limitations
+    tags: [deception, metadata]
+
+  - id: social-eng-urgency
+    name: Urgency-Inducing Language
+    description: Content uses urgency to pressure users into action
+    severity: low
+    category: social-engineering
+    pattern: '(?:act\s+now|immediately\s+(?:install|enable|activate)|urgent(?:ly)?|critical\s+update|must\s+install\s+(?:now|immediately))'
+    pattern_flags: [IGNORECASE]
+    recommendation: Avoid urgency language that pressures users; let them make informed decisions
+    tags: [deception, manipulation]
+
+  - id: social-eng-hidden-instruction
+    name: Hidden Instruction to User
+    description: Instruction that tells the AI to hide actions from the user
+    severity: critical
+    category: social-engineering
+    pattern: '(?:do\s+not\s+(?:tell|inform|show|reveal|mention)\s+(?:the\s+)?user|hide\s+this\s+(?:action|from|behavior)|keep\s+this\s+(?:secret|hidden))'
+    pattern_flags: [IGNORECASE]
+    recommendation: All actions should be transparent to the user; remove concealment instructions
+    tags: [concealment, critical]
+
+  - id: social-eng-disable-safety
+    name: Safety Disable Instruction
+    description: Instruction to disable safety features
+    severity: critical
+    category: social-engineering
+    pattern: '(?:disable\s+(?:safety|security|protection|filter|guard)|turn\s+off\s+(?:safety|security|protection)|bypass\s+(?:safety|security|filter))'
+    pattern_flags: [IGNORECASE]
+    recommendation: Never disable safety features; remove these instructions
+    tags: [safety, critical]
+
+  - id: social-eng-keyword-stuffing
+    name: Keyword Stuffing in Description
+    description: Suspiciously many comma-separated keywords (keyword baiting for discovery)
+    severity: medium
+    category: social-engineering
+    pattern: '(?:(?:\w+,\s*){15,}\w+)'
+    recommendation: Use a concise, specific description instead of keyword-stuffed lists
+    tags: [discovery-abuse, metadata]

@@ -1,0 +1,254 @@
+---
+metadata:
+  name: "Prompt Injection Rules"
+  description: "Detects prompt injection and jailbreak attempts in skills and commands"
+  version: "1.0.0"
+  author: "Security Team"
+  category: "injection"
+
+rules:
+  # Basic instruction override patterns
+  - id: "prompt-injection-ignore-instructions"
+    name: "Instruction Override Attempt"
+    description: "Detects attempts to override or ignore previous instructions"
+    severity: "critical"
+    category: "prompt-injection"
+    pattern: "ignore\\s+(previous|all|above|prior)\\s+instructions?"
+    pattern_flags: ["IGNORECASE"]
+    recommendation: "Remove or sanitize user-controllable content that could manipulate AI behavior"
+    tags: ["prompt-injection", "jailbreak"]
+
+  - id: "prompt-injection-role-manipulation"
+    name: "Role Manipulation Attempt"
+    description: "Detects attempts to change the AI's role or identity"
+    severity: "critical"
+    category: "prompt-injection"
+    pattern: "you\\s+are\\s+now\\s+(a|an)\\s+(?:ai|assistant|bot|model|unrestricted|unfiltered|uncensored|evil|malicious|hacker)"
+    pattern_flags: ["IGNORECASE"]
+    recommendation: "Remove role manipulation patterns from content"
+    tags: ["prompt-injection", "role-manipulation"]
+
+  - id: "prompt-injection-rule-bypass"
+    name: "Rule Bypass Attempt"
+    description: "Detects attempts to bypass rules or guidelines"
+    severity: "critical"
+    category: "prompt-injection"
+    pattern: "disregard\\s+(your|all|any)\\s+(rules|instructions|guidelines)"
+    pattern_flags: ["IGNORECASE"]
+    recommendation: "Remove rule bypass patterns"
+    tags: ["prompt-injection", "bypass"]
+
+  - id: "prompt-injection-behavioral"
+    name: "Behavioral Manipulation"
+    description: "Detects attempts to manipulate AI behavior with restriction-bypassing language"
+    severity: "critical"
+    category: "prompt-injection"
+    pattern: "act\\s+as\\s+if\\s+you\\s+(?:have\\s+no|are\\s+not|can\\s+ignore|were\\s+(?:un)?restricted|had\\s+no\\s+(?:rules|limits|restrictions))"
+    pattern_flags: ["IGNORECASE"]
+    recommendation: "Remove behavioral manipulation patterns"
+    tags: ["prompt-injection"]
+
+  - id: "prompt-injection-identity"
+    name: "Identity Manipulation"
+    description: "Detects attempts to change AI identity"
+    severity: "critical"
+    category: "prompt-injection"
+    pattern: "pretend\\s+(you\\s+are|to\\s+be)"
+    pattern_flags: ["IGNORECASE"]
+    recommendation: "Remove identity manipulation patterns"
+    tags: ["prompt-injection"]
+
+  - id: "prompt-injection-memory"
+    name: "Memory Manipulation Attempt"
+    description: "Detects attempts to clear AI memory or context"
+    severity: "critical"
+    category: "prompt-injection"
+    pattern: "forget\\s+(everything|all|your)"
+    pattern_flags: ["IGNORECASE"]
+    recommendation: "Remove memory manipulation patterns"
+    tags: ["prompt-injection"]
+    exclude_patterns:
+      - "forget\\s+your\\s+password"
+      - "forget\\s+your\\s+credentials"
+
+  - id: "prompt-injection-new-instructions"
+    name: "Instruction Injection"
+    description: "Detects injection of new instructions with imperative markers"
+    severity: "critical"
+    category: "prompt-injection"
+    pattern: "new\\s+instructions?:\\s*\\S"
+    pattern_flags: ["IGNORECASE"]
+    recommendation: "Remove instruction injection markers"
+    tags: ["prompt-injection"]
+
+  - id: "prompt-injection-system-marker"
+    name: "System Prompt Injection Marker"
+    description: "Detects system prompt injection markers"
+    severity: "critical"
+    category: "prompt-injection"
+    pattern: "\\[SYSTEM\\]"
+    pattern_flags: []
+    recommendation: "Remove system prompt markers"
+    tags: ["prompt-injection", "system-prompt"]
+
+  - id: "prompt-injection-xml-system"
+    name: "XML System Tag Injection"
+    description: "Detects XML-style system tag injection"
+    severity: "critical"
+    category: "prompt-injection"
+    pattern: "<\\s*system\\s*>"
+    pattern_flags: ["IGNORECASE"]
+    recommendation: "Remove XML system tags"
+    tags: ["prompt-injection", "xml"]
+
+  - id: "prompt-injection-markdown-system"
+    name: "Markdown System Injection"
+    description: "Detects markdown-style system injection"
+    severity: "critical"
+    category: "prompt-injection"
+    pattern: "###\\s*SYSTEM"
+    pattern_flags: ["IGNORECASE"]
+    recommendation: "Remove markdown system markers"
+    tags: ["prompt-injection", "markdown"]
+
+  - id: "prompt-injection-priority-override"
+    name: "Priority Override Attempt"
+    description: "Detects attempts to use priority to override instructions"
+    severity: "critical"
+    category: "prompt-injection"
+    pattern: "IMPORTANT:\\s*ignore"
+    pattern_flags: ["IGNORECASE"]
+    recommendation: "Remove priority override patterns"
+    tags: ["prompt-injection"]
+
+  - id: "prompt-injection-override-directive"
+    name: "Override Directive"
+    description: "Detects override directives"
+    severity: "critical"
+    category: "prompt-injection"
+    pattern: "override\\s+(all\\s+)?previous"
+    pattern_flags: ["IGNORECASE"]
+    recommendation: "Remove override directives"
+    tags: ["prompt-injection"]
+
+  - id: "prompt-injection-security-bypass"
+    name: "Security Bypass Attempt"
+    description: "Detects explicit security bypass attempts"
+    severity: "critical"
+    category: "prompt-injection"
+    pattern: "bypass\\s+(security|safety|restrictions)"
+    pattern_flags: ["IGNORECASE"]
+    recommendation: "Remove security bypass patterns"
+    tags: ["prompt-injection", "bypass"]
+
+  - id: "prompt-injection-jailbreak"
+    name: "Jailbreak Attempt"
+    description: "Detects jailbreak keywords"
+    severity: "critical"
+    category: "prompt-injection"
+    pattern: "jailbreak"
+    pattern_flags: ["IGNORECASE"]
+    recommendation: "Remove jailbreak references"
+    tags: ["prompt-injection", "jailbreak"]
+
+  - id: "prompt-injection-dan"
+    name: "DAN Jailbreak Pattern"
+    description: "Detects DAN (Do Anything Now) jailbreak pattern"
+    severity: "critical"
+    category: "prompt-injection"
+    pattern: "DAN\\s*mode"
+    pattern_flags: ["IGNORECASE"]
+    recommendation: "Remove DAN jailbreak patterns"
+    tags: ["prompt-injection", "jailbreak", "dan"]
+
+  # Advanced jailbreak patterns
+  - id: "prompt-injection-dan-full"
+    name: "DAN Full Pattern"
+    description: "Detects full DAN jailbreak phrase in attack context"
+    severity: "critical"
+    category: "prompt-injection"
+    pattern: "do\\s+anything\\s+now.{0,30}(?:you\\s+are|no\\s+restrict|unrestrict|no\\s+rules|no\\s+limits|freed)"
+    pattern_flags: ["IGNORECASE", "DOTALL"]
+    recommendation: "Remove DAN jailbreak patterns"
+    tags: ["prompt-injection", "jailbreak", "dan"]
+
+  - id: "prompt-injection-developer-mode"
+    name: "Developer Mode Bypass"
+    description: "Detects developer mode bypass attempts in jailbreak context"
+    severity: "critical"
+    category: "prompt-injection"
+    pattern: "developer\\s+mode\\s+(?:enabled|activated|on|bypass|unlock|output)"
+    pattern_flags: ["IGNORECASE"]
+    recommendation: "Remove developer mode bypass attempts"
+    tags: ["prompt-injection", "bypass"]
+
+  - id: "prompt-injection-god-mode"
+    name: "God Mode Bypass"
+    description: "Detects god mode bypass attempts"
+    severity: "critical"
+    category: "prompt-injection"
+    pattern: "god\\s+mode"
+    pattern_flags: ["IGNORECASE"]
+    recommendation: "Remove god mode bypass attempts"
+    tags: ["prompt-injection", "bypass"]
+
+  - id: "prompt-injection-role-forcing"
+    name: "Role Forcing Pattern"
+    description: "Detects attempts to force a specific role"
+    severity: "critical"
+    category: "prompt-injection"
+    pattern: "you\\s+will\\s+now\\s+act\\s+as"
+    pattern_flags: ["IGNORECASE"]
+    recommendation: "Remove role forcing patterns"
+    tags: ["prompt-injection", "role-manipulation"]
+
+  - id: "prompt-injection-persistent-role"
+    name: "Persistent Role Change"
+    description: "Detects attempts to permanently change role"
+    severity: "critical"
+    category: "prompt-injection"
+    pattern: "from\\s+now\\s+on\\s+you\\s+are"
+    pattern_flags: ["IGNORECASE"]
+    recommendation: "Remove persistent role change patterns"
+    tags: ["prompt-injection", "role-manipulation"]
+
+  - id: "prompt-injection-ethics-bypass"
+    name: "Ethics Bypass Attempt"
+    description: "Detects attempts to bypass ethical guidelines"
+    severity: "critical"
+    category: "prompt-injection"
+    pattern: "ignore\\s+all\\s+ethical"
+    pattern_flags: ["IGNORECASE"]
+    recommendation: "Remove ethics bypass patterns"
+    tags: ["prompt-injection", "bypass", "ethics"]
+
+  - id: "prompt-injection-unrestricted"
+    name: "Unrestricted Mode"
+    description: "Detects attempts to enable unrestricted mode"
+    severity: "critical"
+    category: "prompt-injection"
+    pattern: "unrestricted\\s+mode"
+    pattern_flags: ["IGNORECASE"]
+    recommendation: "Remove unrestricted mode patterns"
+    tags: ["prompt-injection", "bypass"]
+
+  - id: "prompt-injection-context-reset"
+    name: "Context Reset"
+    description: "Detects attempts to reset context"
+    severity: "high"
+    category: "prompt-injection"
+    pattern: "reset\\s+your\\s+(memory|context)"
+    pattern_flags: ["IGNORECASE"]
+    recommendation: "Remove context reset patterns"
+    tags: ["prompt-injection"]
+
+  - id: "prompt-injection-encoding-evasion"
+    name: "Encoding Evasion"
+    description: "Detects encoded payloads that may hide prompt injection content"
+    severity: "medium"
+    category: "prompt-injection"
+    pattern: "(base64|hex|rot13)\\s*:\\s*[A-Za-z0-9+/=]{20,}"
+    pattern_flags: ["IGNORECASE"]
+    recommendation: "Review encoded content for hidden payloads"
+    tags: ["prompt-injection", "evasion"]
+
