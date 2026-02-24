@@ -1060,6 +1060,196 @@ def _run_single_scan_pipeline(
     return combined_findings, verdict
 
 
+def _run_ci_pr_pipeline(args, scanner, config, rate_limiter) -> None:
+    """Run the CI/PR scanning pipeline: detect changes, resolve targets, diff scan."""
+    import time
+
+    from scanner.ci.changed_files import get_changed_files
+    from scanner.ci.target_resolver import resolve_targets_with_llm, resolve_targets_heuristic
+    from scanner.ci.diff_scanner import DiffScanner
+    from scanner.ci.pr_reporter import (
+        generate_pr_comment,
+        generate_pr_sarif,
+        generate_pr_json,
+        write_pr_comment,
+        write_pr_sarif,
+        write_pr_json,
+    )
+
+    repo_root = str(Path(args.plugin_path or ".").resolve())
+    start_time = time.time()
+
+    if not args.quiet:
+        print(f"\n{'='*60}")
+        print("CI/PR SECURITY SCAN")
+        print(f"{'='*60}")
+
+    # ── Step 1: Get changed files ──
+    if not args.quiet:
+        print(f"\n[1/4] Fetching changed files...")
+
+    try:
+        changed_files = get_changed_files(
+            repo_root,
+            github_token=args.github_token,
+            pr_number=args.pr_number,
+            base_ref=args.base_ref,
+            head_ref=args.head_ref,
+        )
+    except Exception as e:
+        print(f"Error: Failed to get changed files: {e}", file=sys.stderr)
+        sys.exit(1)
+
+    if not changed_files:
+        if not args.quiet:
+            print("  No changed files detected. Nothing to scan.")
+        sys.exit(0)
+
+    if not args.quiet:
+        print(f"  Found {len(changed_files)} changed file(s)")
+        if args.verbose:
+            for cf in changed_files:
+                print(f"    [{cf.status.upper()}] {cf.path}")
+
+    # ── Step 2: Resolve targets with LLM ──
+    if not args.quiet:
+        print(f"\n[2/4] Resolving affected skills/plugins...")
+
+    try:
+        from scanner.ai.providers import get_llm_provider
+        llm = get_llm_provider(args.ai_provider, args.ai_model)
+
+        affected_targets = resolve_targets_with_llm(
+            changed_files, repo_root, llm,
+            verbose=args.verbose,
+            rate_limiter=rate_limiter,
+        )
+    except Exception as e:
+        if args.verbose:
+            print(f"  [WARNING] LLM resolution failed: {e}")
+            print("  Falling back to heuristic resolution...")
+        affected_targets = resolve_targets_heuristic(changed_files, repo_root)
+
+    if not affected_targets:
+        if not args.quiet:
+            print("  No skills or plugins affected by this PR. Nothing to scan.")
+        sys.exit(0)
+
+    if not args.quiet:
+        print(f"  Found {len(affected_targets)} affected target(s):")
+        for i, t in enumerate(affected_targets, 1):
+            print(f"    {i}. [{t.target_type}] {t.name} ({t.change_scenario})")
+            if args.verbose and t.reasoning:
+                print(f"       Reason: {t.reasoning}")
+
+    # ── Step 3: Differential scan ──
+    if not args.quiet:
+        print(f"\n[3/4] Running differential security scan...")
+
+    base_ref = args.base_ref or os.environ.get("GITHUB_BASE_REF", "")
+    head_ref = args.head_ref or os.environ.get("GITHUB_SHA", "HEAD")
+
+    if not base_ref:
+        print("Error: --base-ref is required for differential scanning", file=sys.stderr)
+        sys.exit(1)
+
+    try:
+        from scanner.ai.providers import get_llm_provider
+        llm = get_llm_provider(args.ai_provider, args.ai_model)
+    except Exception as e:
+        print(f"Error: Failed to initialize LLM: {e}", file=sys.stderr)
+        sys.exit(1)
+
+    diff_scanner = DiffScanner(
+        scanner=scanner,
+        llm=llm,
+        ai_provider=args.ai_provider,
+        ai_model=args.ai_model,
+        verbose=args.verbose,
+        quiet=args.quiet,
+        static=args.static,
+        ai_triage_threshold=args.ai_triage_threshold,
+        workers=args.workers,
+        rate_limiter=rate_limiter,
+    )
+
+    pr_result = diff_scanner.scan_pr(
+        affected_targets, base_ref, head_ref, repo_root,
+    )
+
+    # ── Step 4: Generate reports ──
+    if not args.quiet:
+        elapsed = time.time() - start_time
+        print(f"\n[4/4] Generating reports... (scan took {elapsed:.1f}s)")
+
+    s = pr_result.summary
+    if not args.quiet:
+        print(f"\n{'='*60}")
+        print("CI SCAN RESULTS")
+        print(f"{'='*60}")
+        print(f"  Targets scanned: {s.total_targets_affected}")
+        print(f"  New vulnerabilities: {s.new_count}")
+        print(f"  Worsened vulnerabilities: {s.worsened_count}")
+        print(f"  Resolved (fixed): {s.resolved_count}")
+        print(f"  Unchanged: {s.unchanged_count}")
+        print(f"  Risk delta: {s.overall_risk_delta}")
+        print(f"  Verdict: {s.verdict.upper()}")
+        print(f"{'='*60}")
+
+    # Write PR comment
+    if args.pr_comment_file:
+        try:
+            write_pr_comment(pr_result, args.pr_comment_file)
+            if not args.quiet:
+                print(f"\nPR comment written to: {args.pr_comment_file}")
+        except Exception as e:
+            if args.verbose:
+                print(f"\n[WARNING] Failed to write PR comment: {e}")
+
+    # Write output file (SARIF or JSON)
+    if args.output_file:
+        try:
+            if args.output == "sarif":
+                write_pr_sarif(pr_result, args.output_file)
+            else:
+                write_pr_json(pr_result, args.output_file)
+            if not args.quiet:
+                print(f"Report written to: {args.output_file}")
+        except Exception as e:
+            if args.verbose:
+                print(f"\n[WARNING] Failed to write report: {e}")
+    else:
+        # Print to stdout
+        if args.output == "sarif":
+            report = generate_pr_sarif(pr_result)
+        else:
+            report = generate_pr_json(pr_result)
+
+        if not args.quiet:
+            print(f"\n{'='*60}")
+            print("REPORT OUTPUT")
+            print(f"{'='*60}")
+        print(json.dumps(report, indent=2))
+
+    # Exit code based on --fail-on or verdict
+    if args.fail_on:
+        severity_order = ["critical", "high", "medium", "low"]
+        threshold_idx = severity_order.index(args.fail_on)
+
+        for tr in pr_result.target_results:
+            for impact_f in tr.new_findings + tr.worsened_findings:
+                finding_idx = severity_order.index(impact_f.severity)
+                if finding_idx <= threshold_idx:
+                    if args.verbose:
+                        print(f"\nFailing: {impact_f.severity} finding: {impact_f.finding.rule_name}")
+                    sys.exit(1)
+
+    if s.verdict == "fail":
+        sys.exit(1)
+
+    sys.exit(0)
+
+
 def main():
     """Main CLI entry point."""
     # Check if first arg is 'rules' subcommand
@@ -1222,11 +1412,45 @@ Environment variables for AI providers:
         help="Recursively discover all plugins and skills in the given directory and scan each one",
     )
     
+    # CI/PR scanning mode
+    parser.add_argument(
+        "--ci-pr",
+        action="store_true",
+        default=False,
+        help="CI mode: scan only skills/plugins affected by PR changes",
+    )
+    parser.add_argument(
+        "--base-ref",
+        default=None,
+        help="Base git ref for comparison (default: auto-detect from GITHUB_BASE_REF)",
+    )
+    parser.add_argument(
+        "--head-ref",
+        default=None,
+        help="Head git ref for comparison (default: current HEAD)",
+    )
+    parser.add_argument(
+        "--github-token",
+        default=None,
+        help="GitHub token for API access (default: GITHUB_TOKEN env var)",
+    )
+    parser.add_argument(
+        "--pr-number",
+        type=int,
+        default=None,
+        help="PR number to scan (default: auto-detect from CI environment)",
+    )
+    parser.add_argument(
+        "--pr-comment-file",
+        default=None,
+        help="Write PR comment markdown to this file",
+    )
+    
     args = parser.parse_args()
     
     # Validate arguments for scan
-    if not args.plugin_path and not args.marketplace:
-        parser.error("Either plugin_path or --marketplace is required")
+    if not args.plugin_path and not args.marketplace and not args.ci_pr:
+        parser.error("Either plugin_path, --marketplace, or --ci-pr is required")
     
     # Load configuration
     cli_overrides = {}
@@ -1248,6 +1472,11 @@ Environment variables for AI providers:
     try:
         from scanner.ai.providers import RateLimiter
         rate_limiter = RateLimiter(rpm=args.rpm)
+
+        # ── CI/PR mode: scan only affected skills/plugins ──
+        if args.ci_pr:
+            _run_ci_pr_pipeline(args, scanner, config, rate_limiter)
+            return
 
         # ── Discover mode: scan multiple plugins/skills ──
         if args.discover:

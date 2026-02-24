@@ -39,7 +39,7 @@ SUPPORTED_PROVIDERS = {
     ),
     "gemini": ProviderConfig(
         name="gemini",
-        default_model="gemini-1.5-pro",
+        default_model="gemini-2.0-flash",
         env_var="GOOGLE_API_KEY",
         description="Google Gemini models"
     ),

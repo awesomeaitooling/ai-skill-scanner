@@ -1,0 +1,59 @@
+name: Skill Security Scan
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+  security-events: write
+
+jobs:
+  scan:
+    name: Scan PR for skill/plugin security issues
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run PR security scan
+        id: scan
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python -m scanner . \
+            --ci-pr \
+            --pr-number ${{ github.event.pull_request.number }} \
+            --base-ref origin/${{ github.base_ref }} \
+            --head-ref ${{ github.sha }} \
+            --ai-provider openai \
+            --output sarif \
+            --output-file results.sarif \
+            --pr-comment-file pr-comment.md \
+            --fail-on high
+
+      - name: Upload SARIF results
+        if: always() && hashFiles('results.sarif') != ''
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: results.sarif
+
+      - name: Post PR comment
+        if: always() && hashFiles('pr-comment.md') != ''
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          path: pr-comment.md

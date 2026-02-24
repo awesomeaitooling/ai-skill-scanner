@@ -286,6 +286,127 @@ def cleanup_temp_dir(path: str) -> None:
         shutil.rmtree(path, ignore_errors=True)
 
 
+def create_worktree(ref: str, repo_root: str) -> str:
+    """
+    Create a temporary git worktree checked out at a specific ref.
+    
+    Args:
+        ref: Git ref to checkout (branch, tag, or commit SHA)
+        repo_root: Path to the git repository root
+    
+    Returns:
+        Path to the worktree directory
+    
+    Raises:
+        RuntimeError: If worktree creation fails
+    """
+    import tempfile
+
+    tmp_dir = tempfile.mkdtemp(prefix="scanner-worktree-")
+    cmd = ["git", "worktree", "add", "--detach", tmp_dir, ref]
+
+    result = subprocess.run(
+        cmd,
+        capture_output=True,
+        text=True,
+        cwd=repo_root,
+        timeout=60,
+        env={**os.environ, "GIT_TERMINAL_PROMPT": "0"},
+    )
+
+    if result.returncode != 0:
+        shutil.rmtree(tmp_dir, ignore_errors=True)
+        raise RuntimeError(
+            f"Failed to create worktree at {ref}: {result.stderr[:300]}"
+        )
+
+    return tmp_dir
+
+
+def cleanup_worktree(worktree_path: str, repo_root: str) -> None:
+    """
+    Remove a git worktree and clean up its directory.
+    
+    Args:
+        worktree_path: Path to the worktree to remove
+        repo_root: Path to the git repository root
+    """
+    try:
+        subprocess.run(
+            ["git", "worktree", "remove", "--force", worktree_path],
+            capture_output=True,
+            text=True,
+            cwd=repo_root,
+            timeout=30,
+        )
+    except Exception:
+        pass
+    shutil.rmtree(worktree_path, ignore_errors=True)
+
+
+def get_changed_files_from_diff(
+    base_ref: str,
+    head_ref: str,
+    repo_root: str,
+) -> list[dict]:
+    """
+    Get changed files between two git refs using git diff.
+    
+    Args:
+        base_ref: Base git ref
+        head_ref: Head git ref
+        repo_root: Path to the git repository root
+    
+    Returns:
+        List of dicts with 'path', 'status' keys
+    """
+    cmd = [
+        "git", "diff", "--name-status",
+        f"{base_ref}...{head_ref}",
+    ]
+
+    result = subprocess.run(
+        cmd,
+        capture_output=True,
+        text=True,
+        cwd=repo_root,
+        timeout=60,
+    )
+
+    if result.returncode != 0:
+        # Fall back to two-dot diff
+        cmd = ["git", "diff", "--name-status", base_ref, head_ref]
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            cwd=repo_root,
+            timeout=60,
+        )
+        if result.returncode != 0:
+            raise RuntimeError(f"git diff failed: {result.stderr[:300]}")
+
+    status_map = {
+        "A": "added", "M": "modified", "D": "deleted",
+        "R": "renamed", "C": "added", "T": "modified",
+    }
+
+    files = []
+    for line in result.stdout.strip().splitlines():
+        if not line.strip():
+            continue
+        parts = line.split("\t")
+        if len(parts) < 2:
+            continue
+        status_code = parts[0][0]
+        files.append({
+            "path": parts[-1],
+            "status": status_map.get(status_code, "modified"),
+        })
+
+    return files
+
+
 def validate_git_url(url: str) -> bool:
     """
     Validate a git URL.

@@ -1,0 +1,101 @@
+name: "AI Skill Security Scanner"
+description: "Scan AI agent skills and plugins for security vulnerabilities on pull requests"
+author: "Skills Scanner Contributors"
+
+branding:
+  icon: "shield"
+  color: "blue"
+
+inputs:
+  ai-provider:
+    description: "AI provider to use (openai, gemini, bedrock, anthropic, azure)"
+    required: false
+    default: "openai"
+  ai-model:
+    description: "Specific AI model to use (defaults to provider default)"
+    required: false
+  fail-on:
+    description: "Severity threshold to fail the check (critical, high, medium, low)"
+    required: false
+    default: "high"
+  scan-mode:
+    description: "Scan mode (strict, balanced, permissive)"
+    required: false
+    default: "balanced"
+  static:
+    description: "Also run static rule-based analysis alongside AI scan"
+    required: false
+    default: "false"
+  workers:
+    description: "Max parallel LLM calls"
+    required: false
+    default: "4"
+  triage-threshold:
+    description: "AI triage confidence threshold (0.0-1.0)"
+    required: false
+    default: "0.5"
+
+outputs:
+  verdict:
+    description: "Scan verdict (pass or fail)"
+  new-findings:
+    description: "Number of new vulnerabilities found"
+  risk-delta:
+    description: "Overall risk change (increased, decreased, unchanged)"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+        cache: pip
+
+    - name: Install scanner dependencies
+      shell: bash
+      run: pip install -r ${{ github.action_path }}/requirements.txt
+
+    - name: Run PR security scan
+      id: scan
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+      run: |
+        STATIC_FLAG=""
+        if [ "${{ inputs.static }}" = "true" ]; then
+          STATIC_FLAG="--static"
+        fi
+
+        MODEL_FLAG=""
+        if [ -n "${{ inputs.ai-model }}" ]; then
+          MODEL_FLAG="--ai-model ${{ inputs.ai-model }}"
+        fi
+
+        python -m scanner ${{ github.workspace }} \
+          --ci-pr \
+          --pr-number ${{ github.event.pull_request.number }} \
+          --base-ref origin/${{ github.base_ref }} \
+          --head-ref ${{ github.sha }} \
+          --ai-provider ${{ inputs.ai-provider }} \
+          $MODEL_FLAG \
+          --mode ${{ inputs.scan-mode }} \
+          --workers ${{ inputs.workers }} \
+          --ai-triage-threshold ${{ inputs.triage-threshold }} \
+          --output sarif \
+          --output-file ${{ github.workspace }}/skill-scan-results.sarif \
+          --pr-comment-file ${{ github.workspace }}/skill-scan-comment.md \
+          --fail-on ${{ inputs.fail-on }} \
+          $STATIC_FLAG
+
+    - name: Upload SARIF results
+      if: always() && hashFiles('skill-scan-results.sarif') != ''
+      uses: github/codeql-action/upload-sarif@v3
+      with:
+        sarif_file: ${{ github.workspace }}/skill-scan-results.sarif
+
+    - name: Post PR comment
+      if: always() && hashFiles('skill-scan-comment.md') != ''
+      uses: marocchino/sticky-pull-request-comment@v2
+      with:
+        path: ${{ github.workspace }}/skill-scan-comment.md
