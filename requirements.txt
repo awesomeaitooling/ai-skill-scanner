@@ -8,6 +8,7 @@ pyyaml>=6.0.1
 # pip install langchain-google-genai        # Google Gemini
 # pip install langchain-anthropic           # Anthropic Claude direct
 # pip install langchain-aws                 # AWS Bedrock
+# pip install langchain-xai                 # xAI Grok
 #
 # Or install via extras:
 #   pip install ".[ai-openai]"

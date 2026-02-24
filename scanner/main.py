@@ -1355,7 +1355,7 @@ Environment variables for AI providers:
     
     parser.add_argument(
         "--ai-provider",
-        choices=["openai", "azure", "gemini", "bedrock", "anthropic"],
+        choices=["openai", "azure", "gemini", "bedrock", "anthropic", "xai"],
         default="openai",
         help="AI provider to use (default: openai)"
     )

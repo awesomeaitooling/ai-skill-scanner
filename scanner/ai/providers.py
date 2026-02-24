@@ -55,6 +55,12 @@ SUPPORTED_PROVIDERS = {
         env_var="ANTHROPIC_API_KEY",
         description="Anthropic Claude models"
     ),
+    "xai": ProviderConfig(
+        name="xai",
+        default_model="grok-4",
+        env_var="XAI_API_KEY",
+        description="xAI Grok models"
+    ),
 }
 
 
@@ -171,6 +177,19 @@ def get_llm_provider(
         except ImportError:
             raise ImportError(
                 "Anthropic support requires: pip install langchain-anthropic"
+            )
+    
+    elif provider == "xai":
+        try:
+            from langchain_xai import ChatXAI
+            return ChatXAI(
+                model=model_name,
+                temperature=temperature,
+                max_tokens=max_tokens,
+            )
+        except ImportError:
+            raise ImportError(
+                "xAI support requires: pip install langchain-xai"
             )
     
     raise ValueError(f"Provider {provider} not implemented")
