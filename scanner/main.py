@@ -1072,6 +1072,7 @@ def _run_ci_pr_pipeline(args, scanner, config, rate_limiter) -> None:
         generate_pr_sarif,
         generate_pr_json,
         write_pr_comment,
+        write_pr_findings_txt,
         write_pr_sarif,
         write_pr_json,
     )
@@ -1177,6 +1178,12 @@ def _run_ci_pr_pipeline(args, scanner, config, rate_limiter) -> None:
         affected_targets, base_ref, head_ref, repo_root,
     )
 
+    # Attach repository and PR context for reports
+    pr_result.summary.repository = os.environ.get("GITHUB_REPOSITORY", "")
+    pr_result.summary.pr_number = getattr(args, "pr_number", None)
+    pr_result.summary.base_ref = base_ref
+    pr_result.summary.head_ref = head_ref
+
     # ── Step 4: Generate reports ──
     if not args.quiet:
         elapsed = time.time() - start_time
@@ -1206,15 +1213,18 @@ def _run_ci_pr_pipeline(args, scanner, config, rate_limiter) -> None:
             if args.verbose:
                 print(f"\n[WARNING] Failed to write PR comment: {e}")
 
-    # Write output file (SARIF or JSON)
+    # Write output file (SARIF or JSON) and findings text artifact
     if args.output_file:
         try:
+            out_path = Path(args.output_file)
             if args.output == "sarif":
                 write_pr_sarif(pr_result, args.output_file)
             else:
                 write_pr_json(pr_result, args.output_file)
+            findings_txt_path = str(out_path.parent / "pr-scan-findings.txt")
+            write_pr_findings_txt(pr_result, findings_txt_path)
             if not args.quiet:
-                print(f"Report written to: {args.output_file}")
+                print(f"Report written to: {args.output_file}, {findings_txt_path}")
         except Exception as e:
             if args.verbose:
                 print(f"\n[WARNING] Failed to write report: {e}")

@@ -244,6 +244,124 @@ def generate_pr_sarif(pr_result: PRScanResult) -> dict[str, Any]:
     return sarif
 
 
+# ── Text findings report (artifact) ───────────────────────────────────
+
+_SCENARIO_LABELS = {
+    "new_target": "New skill/plugin introduced",
+    "modified": "Existing skill/plugin modified",
+    "file_added": "File(s) added to existing skill/plugin",
+    "file_removed": "File(s) removed from existing skill/plugin",
+    "deleted_target": "Skill/plugin removed",
+}
+_SEVERITY_ORDER = {"critical": 0, "high": 1, "medium": 2, "low": 3}
+_SECTION_ORDER = {"malicious": 0, "code_security": 1}
+
+
+def generate_pr_findings_txt(pr_result: PRScanResult) -> str:
+    """Generate a text report with header (repo, PR, scan summary) and findings list ordered by severity."""
+    s = pr_result.summary
+    lines: list[str] = []
+
+    # ── Header: repository and PR details ──
+    lines.append("=" * 72)
+    lines.append("AI Skill Security Scan — PR Scan Results")
+    lines.append("=" * 72)
+    lines.append("")
+    repo = getattr(s, "repository", "") or ""
+    pr_num = getattr(s, "pr_number", None)
+    base_ref = getattr(s, "base_ref", "") or ""
+    head_ref = getattr(s, "head_ref", "") or ""
+    if repo or pr_num is not None or base_ref or head_ref:
+        lines.append("Repository / PR details")
+        lines.append("-" * 72)
+        if repo:
+            lines.append(f"  Repository:  {repo}")
+        if pr_num is not None:
+            lines.append(f"  PR number:   {pr_num}")
+        if base_ref:
+            lines.append(f"  Base ref:    {base_ref}")
+        if head_ref:
+            lines.append(f"  Head ref:    {head_ref}")
+        lines.append("")
+    # ── High-level scan summary ──
+    lines.append("Scan summary")
+    lines.append("-" * 72)
+    lines.append(f"  Verdict:              {s.verdict.upper()}")
+    lines.append(f"  Targets scanned:      {s.total_targets_affected}")
+    lines.append(f"  New:                  {s.new_count}")
+    lines.append(f"  Worsened:             {s.worsened_count}")
+    lines.append(f"  Resolved:             {s.resolved_count}")
+    lines.append(f"  Unchanged:            {s.unchanged_count}")
+    lines.append(f"  Overall risk delta:   {s.overall_risk_delta}")
+    cost = getattr(s, "cost_estimate_usd", None)
+    total_in = getattr(s, "total_input_tokens", 0) or 0
+    total_out = getattr(s, "total_output_tokens", 0) or 0
+    if cost is not None or total_in or total_out:
+        if total_in or total_out:
+            lines.append(f"  Token usage:          {total_in} input / {total_out} output")
+        if cost is not None:
+            lines.append(f"  Estimated cost:       ${cost:.4f} USD")
+    lines.append(f"  Generated:            {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')} UTC")
+    lines.append("")
+    lines.append("=" * 72)
+    lines.append("Findings (new + worsened) — by severity (Critical → Low), Malicious first")
+    lines.append("=" * 72)
+    lines.append("")
+
+    # ── Findings list (sorted) ──
+    paired: list[tuple[ImpactFinding, TargetImpactResult]] = []
+    for tr in pr_result.target_results:
+        for imp in tr.new_findings:
+            paired.append((imp, tr))
+        for imp in tr.worsened_findings:
+            paired.append((imp, tr))
+
+    def sort_key(item: tuple[ImpactFinding, TargetImpactResult]) -> tuple[int, int]:
+        imp, _ = item
+        sev = imp.severity or imp.finding.severity
+        sec = imp.finding.section or "code_security"
+        return (_SEVERITY_ORDER.get(sev, 4), _SECTION_ORDER.get(sec, 1))
+
+    paired.sort(key=sort_key)
+
+    for imp, tr in paired:
+        t = tr.target
+        f = imp.finding
+        sev = imp.severity or f.severity
+        sec_label = "Malicious" if f.section == "malicious" else "Code security"
+        scenario = _SCENARIO_LABELS.get(t.change_scenario, t.change_scenario)
+        target_name = f"{t.target_type}: {t.name}"
+
+        lines.append("-" * 72)
+        lines.append(f"[{sev.upper()}] {sec_label} — {f.rule_name}")
+        lines.append(f"  Target: {target_name}  |  Scenario: {scenario}  |  Impact: {imp.status}")
+        lines.append(f"  Component: {f.component_type}/{f.component_name or '-'}")
+        if f.component_path:
+            lines.append(f"  File: {f.component_path}" + (f" (line {f.line})" if f.line else ""))
+        msg = redact_secrets(f.message)
+        if msg:
+            lines.append(f"  Message: {msg[:500]}")
+        if imp.description:
+            lines.append(f"  Impact: {imp.description[:300]}")
+        if f.recommendation:
+            lines.append(f"  Fix: {f.recommendation[:300]}")
+        if f.snippet:
+            lines.append(f"  Snippet: {redact_secrets(f.snippet)[:200]}")
+        lines.append("")
+
+    lines.append("=" * 72)
+    lines.append(f"Total actionable findings: {len(paired)}")
+    lines.append(f"Generated at {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')} UTC")
+    return "\n".join(lines)
+
+
+def write_pr_findings_txt(pr_result: PRScanResult, output_path: str) -> None:
+    """Write the full findings text report (with header and repo/PR details) to a file."""
+    content = generate_pr_findings_txt(pr_result)
+    validated = _validate_output_path(output_path)
+    validated.write_text(content, encoding="utf-8")
+
+
 # ── JSON output ──────────────────────────────────────────────────────
 
 
