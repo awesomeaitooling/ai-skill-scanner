@@ -1366,8 +1366,8 @@ Environment variables for AI providers:
     parser.add_argument(
         "--ai-provider",
         choices=["openai", "azure", "gemini", "bedrock", "anthropic", "xai"],
-        default="openai",
-        help="AI provider to use (default: openai)"
+        default=None,
+        help="AI provider to use (default: from config.yaml, or openai)"
     )
     
     parser.add_argument(
@@ -1473,7 +1473,12 @@ Environment variables for AI providers:
         config_path=args.config,
         cli_overrides=cli_overrides if cli_overrides else None,
     )
-    
+
+    # Resolve effective AI provider and model:
+    # Priority: CLI arg > config.yaml ai section > built-in default
+    args.ai_provider = args.ai_provider or config.ai.provider or "openai"
+    args.ai_model = args.ai_model or config.ai.model
+
     if args.verbose:
         print(f"Scan mode: {config.scan_mode}")
     
