@@ -4,6 +4,8 @@
 
 Scans plugin manifests, skills, hooks, MCP/LSP servers, scripts, agents, commands, and resources using LLM-powered analysis by default. Every component is scanned in parallel, findings are classified as **Malicious** or **Code Security**, false positives are filtered through evidence-based AI triage, and a clear **safety verdict** is produced. Optional static analysis (235 YAML rules, 41 categories) can be layered on with `--static`.
 
+![Skill Scanner](media/image.png)
+
 ---
 
 ## Features
