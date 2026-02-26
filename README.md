@@ -538,6 +538,11 @@ skills-scanner/
 │   │   ├── triage.py           # Static findings triager (evidence-based)
 │   │   ├── prompts.py          # Component-specific prompt registry
 │   │   └── prompt_guard.py     # Prompt injection protection
+│   ├── ci/                     # CI/PR scanning (--ci-pr mode)
+│   │   ├── changed_files.py    # GitHub REST API + git diff file detection
+│   │   ├── target_resolver.py  # LLM-powered skill/plugin resolution
+│   │   ├── diff_scanner.py     # Differential scanning + LLM impact analysis
+│   │   └── pr_reporter.py      # PR comment, SARIF, JSON reporting
 │   ├── config/                 # Configuration system
 │   │   ├── scan_config.py      # Config loading & dataclasses
 │   │   └── modes.py            # Scan mode profiles (strict/balanced/permissive)
@@ -548,7 +553,7 @@ skills-scanner/
 │   │   └── graph_exporter.py   # Graph JSON for visualization (with verdict)
 │   └── utils/
 │       ├── discovery.py        # Recursive plugin/skill discovery (--discover)
-│       └── git_utils.py        # Git metadata extraction
+│       └── git_utils.py        # Git metadata extraction, worktree helpers
 ├── viz/                        # React visualization UI
 │   ├── src/
 │   │   ├── App.tsx             # Main application (3-column layout)
@@ -573,6 +578,10 @@ skills-scanner/
 ├── docs/
 │   ├── SECURITY_CHECKLIST.md   # Manual review checklist
 │   └── SECURITY_REVIEW.md      # Security review documentation
+├── .github/
+│   └── workflows/
+│       └── skill-security-scan.yml  # GitHub Actions PR scan workflow
+├── action.yml                  # Reusable GitHub Action (composite)
 ├── config.yaml                 # Default scanner configuration
 ├── pyproject.toml              # Python project metadata and packaging
 ├── requirements.txt            # Runtime Python dependencies
@@ -588,7 +597,116 @@ skills-scanner/
 
 ## CI/CD Integration
 
-### GitHub Actions
+### PR Security Scan (`--ci-pr`)
+
+The scanner can run as a CI check on pull requests, automatically detecting which skills and plugins are affected by a PR and scanning only those targets. It uses the GitHub REST API to fetch changed files, an LLM to resolve files to their parent skill/plugin, and LLM-powered impact analysis to determine the true security impact of the change.
+
+#### How It Works
+
+1. **Fetch changed files** — uses `GET /repos/{owner}/{repo}/pulls/{pr}/files` (GitHub REST API)
+2. **LLM target resolution** — sends the changed file list and directory tree to the LLM, which identifies which skills/plugins are affected and classifies the change scenario (new, modified, file added, file removed, deleted)
+3. **Differential scan** — scans the affected targets on both the base branch and the PR branch
+4. **LLM impact analysis** — semantically correlates findings from both scans against the actual code diffs to determine which vulnerabilities are genuinely new, worsened, resolved, or unchanged
+5. **Report** — generates a PR comment, SARIF output for GitHub Code Scanning, and JSON report
+
+#### Change Scenarios
+
+| Scenario | What happens |
+|----------|-------------|
+| New plugin/skill | HEAD-only scan; all findings are new |
+| Existing files modified | Both base and HEAD scanned; LLM determines which findings are new vs pre-existing |
+| New file added to existing target | Base scanned without the file, HEAD includes it |
+| File removed from existing target | Base includes the file, HEAD does not |
+| Target deleted entirely | Reported as resolved |
+
+#### Quick Setup
+
+Add this workflow to your repository at `.github/workflows/skill-security-scan.yml`:
+
+```yaml
+name: Skill Security Scan
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install scanner
+        run: pip install -r requirements.txt
+
+      - name: Run PR security scan
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python -m scanner . \
+            --ci-pr \
+            --pr-number ${{ github.event.pull_request.number }} \
+            --base-ref origin/${{ github.base_ref }} \
+            --head-ref ${{ github.sha }} \
+            --ai-provider openai \
+            --output sarif \
+            --output-file results.sarif \
+            --pr-comment-file pr-comment.md \
+            --fail-on high
+
+      - name: Upload SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: results.sarif
+
+      - name: Post PR comment
+        if: always()
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          path: pr-comment.md
+```
+
+#### Reusable GitHub Action
+
+You can also use the scanner as a reusable action in your workflows:
+
+```yaml
+- uses: your-org/skills-scanner@main
+  with:
+    ai-provider: openai
+    fail-on: high
+    scan-mode: balanced
+  env:
+    OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+```
+
+#### CI CLI Reference
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--ci-pr` | off | Enable CI/PR scanning mode |
+| `--pr-number` | auto-detect | PR number to scan |
+| `--base-ref` | auto-detect | Base git ref for comparison |
+| `--head-ref` | `HEAD` | Head git ref for comparison |
+| `--github-token` | `GITHUB_TOKEN` env | GitHub token for API access |
+| `--pr-comment-file` | — | Write PR comment markdown to this file |
+
+All standard flags (`--ai-provider`, `--output`, `--fail-on`, `--static`, `--mode`, etc.) work with `--ci-pr`.
+
+### Static Scan (Non-PR)
+
+For scanning a specific plugin directly in CI (without PR diff analysis):
 
 ```yaml
 - name: Run Security Scan
@@ -612,8 +730,8 @@ skills-scanner/
 
 | Code | Meaning |
 |------|---------|
-| 0 | Scan completed successfully |
-| 1 | Scan completed with findings at or above `--fail-on` severity |
+| 0 | Scan completed successfully (or no affected targets in CI mode) |
+| 1 | Scan completed with findings at or above `--fail-on` severity, or new/worsened malicious findings in CI mode |
 
 ---
 

@@ -39,7 +39,7 @@ SUPPORTED_PROVIDERS = {
     ),
     "gemini": ProviderConfig(
         name="gemini",
-        default_model="gemini-1.5-pro",
+        default_model="gemini-2.0-flash",
         env_var="GOOGLE_API_KEY",
         description="Google Gemini models"
     ),
@@ -54,6 +54,12 @@ SUPPORTED_PROVIDERS = {
         default_model="claude-3-5-sonnet-20241022",
         env_var="ANTHROPIC_API_KEY",
         description="Anthropic Claude models"
+    ),
+    "xai": ProviderConfig(
+        name="xai",
+        default_model="grok-4",
+        env_var="XAI_API_KEY",
+        description="xAI Grok models"
     ),
 }
 
@@ -171,6 +177,19 @@ def get_llm_provider(
         except ImportError:
             raise ImportError(
                 "Anthropic support requires: pip install langchain-anthropic"
+            )
+    
+    elif provider == "xai":
+        try:
+            from langchain_xai import ChatXAI
+            return ChatXAI(
+                model=model_name,
+                temperature=temperature,
+                max_tokens=max_tokens,
+            )
+        except ImportError:
+            raise ImportError(
+                "xAI support requires: pip install langchain-xai"
             )
     
     raise ValueError(f"Provider {provider} not implemented")
